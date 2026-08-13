@@ -1,0 +1,10 @@
+# NTU VIRAL - EEE environment anchor positions
+# Extracted from /node_pos_sc topic in eee_03.bag
+# Format: x[m]  y[m]  z[m]   (UWB world frame {W}, one anchor per line)
+# ID order: 100, 101, 102
+#   anchor 100 is at origin of {W} x-y plane
+#   anchor 101 is in +x direction from anchor 100
+#   anchor 102 is at (23.8, -13.1, 1.5)
+ 0.0000   0.0000  1.5
+41.6974   0.0000  1.5
+23.8137 -13.0631  1.5

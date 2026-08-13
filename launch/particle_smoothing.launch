@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Usage: roslaunch kims particle_smoothing.launch dataset:=iului sequence:=SquareBob -->
+  <arg name="dataset"  default="all" doc="iului | miluv | ntu | all" />
+  <arg name="sequence" default="all" doc="sequence name or all" />
+  <node name="particle_smoothing_runner" pkg="kims" type="run.py" output="screen" required="true"
+        args="--method particle_smoothing --dataset $(arg dataset) --sequence $(arg sequence)" />
+</launch>

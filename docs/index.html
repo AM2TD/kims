@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KIMS — Kinematic-Constrained MPPI Smoothing</title>
+<style>
+  :root{
+    --bg:#101014; --panel:#16161c; --ink:#e8e8ec; --dim:#9a9aa5;
+    --red:#ff5545; --teal:#41B3BA; --line:#26262e;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       line-height:1.65}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px}
+  header{padding:72px 0 40px;text-align:center}
+  h1{font-size:2.0rem;font-weight:800;letter-spacing:-.5px;margin-bottom:10px}
+  h1 .accent{color:var(--red)}
+  .sub{color:var(--dim);font-size:1.06rem;max-width:760px;margin:0 auto 26px}
+  .btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-block;padding:9px 20px;border-radius:999px;border:1px solid var(--line);
+       background:var(--panel);color:var(--ink);text-decoration:none;font-weight:600;font-size:.95rem}
+  .btn:hover{border-color:var(--red)}
+  .btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+  section{padding:44px 0;border-top:1px solid var(--line)}
+  h2{font-size:1.35rem;font-weight:700;margin-bottom:16px}
+  h2 .accent{color:var(--teal)}
+  p{color:var(--dim);margin-bottom:12px}
+  p strong{color:var(--ink)}
+  video{width:100%;border-radius:12px;display:block;background:#000}
+  .cap{color:var(--dim);font-size:.9rem;margin-top:10px;text-align:center}
+  table{width:100%;border-collapse:collapse;font-size:.92rem;margin:14px 0}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--dim);font-weight:600}
+  td.best{color:var(--red);font-weight:700}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .card h3{font-size:1.0rem;margin-bottom:6px}
+  .card p{font-size:.9rem;margin:0}
+  pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+      padding:16px;overflow-x:auto;font-size:.85rem;color:#cfcfd6}
+  footer{padding:40px 0 60px;color:var(--dim);font-size:.9rem;text-align:center}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <h1><span class="accent">KIMS</span>: Kinematic-Constrained MPPI Smoothing<br>for UWB-IMU 6-DoF Pose Estimation</h1>
+  <p class="sub">A fixed-lag smoother that samples IMU input compensations instead of poses —
+     so every candidate trajectory is kinematically reachable, and the estimate stays out of the
+     mirrored basin that quasi-coplanar UWB anchors create.</p>
+  <div class="btns">
+    <a class="btn primary" href="https://github.com/AM2TD/kims">Code</a>
+    <a class="btn" href="#paper">Paper</a>
+    <a class="btn" href="#demo">Demo</a>
+    <a class="btn" href="#results">Results</a>
+  </div>
+</header>
+
+<section id="demo" class="wrap">
+  <h2><span class="accent">▶</span> Demo — NTU VIRAL <code>eee_01</code></h2>
+  <video autoplay loop muted playsinline controls>
+    <source src="assets/kims_demo_eee01.webm" type="video/webm">
+    <source src="assets/kims_demo_eee01.mp4" type="video/mp4">
+  </video>
+  <p class="cap">
+    <strong>Left:</strong> live LiDAR scans posed by the KIMS estimate, with the onboard camera —
+    KIMS (red) tracks the Leica ground truth (dashed) while EKF-RTS (blue) locks onto the mirrored
+    solution. <strong>Right:</strong> the sampler at work — the 40 highest-weight of 10,000
+    input-compensation rollouts per UWB epoch; white is the committed trajectory.
+  </p>
+</section>
+
+<section class="wrap">
+  <h2><span class="accent">◆</span> Why flip ambiguity happens, and what KIMS does</h2>
+  <p>When all UWB anchors sit at nearly the same height, the range geometry admits a
+     <strong>mirrored solution</strong> on the other side of the anchor plane. The two basins are
+     nearly indistinguishable from ranges alone; once a filter or a sliding-window optimizer drifts
+     across, it never comes back.</p>
+  <p>KIMS recasts MPPI as a fixed-lag smoother whose virtual control is a
+     <strong>per-window IMU input compensation</strong>. Every rollout is generated through IMU
+     kinematic propagation — a hard constraint, not a cost term — so the 10,000 hypotheses explored
+     each epoch all stay within the kinematically reachable neighbourhood of the current estimate.
+     Basin confinement emerges from the sampling structure itself: no anchor-plane model, no
+     known-side or height-bound prior.</p>
+  <div class="grid">
+    <div class="card"><h3>Flip-robust</h3>
+      <p>Tracks flights that repeatedly and legitimately cross an elevated anchor plane.</p></div>
+    <div class="card"><h3>Real-time on GPU</h3>
+      <p>10,000 rollouts per UWB epoch; runs onboard a Jetson Orin NX within the sensor period.</p></div>
+    <div class="card"><h3>Reproducible</h3>
+      <p>All three datasets ship in the repo. Offline needs no ROS; the online ROS node is
+         bit-identical on the same data.</p></div>
+  </div>
+</section>
+
+<section id="results" class="wrap">
+  <h2><span class="accent">▤</span> Results</h2>
+  <p>Position RMSE [m] against every baseline, tuned once per dataset. Orientation and the
+     mirrored-occupancy metrics are in the paper.</p>
+  <table>
+    <tr><th>Sequence</th><th>KIMS</th><th>UKF-RTS</th><th>EKF-RTS</th><th>Particle&nbsp;Sm.</th><th>SW-MAP</th></tr>
+    <tr><td>IULUI · SquareBob</td><td class="best">0.139</td><td>0.778</td><td>0.776</td><td>0.335</td><td>0.216</td></tr>
+    <tr><td>IULUI · SquareTurn</td><td class="best">0.159</td><td>0.170</td><td>0.168</td><td>0.922</td><td>0.215</td></tr>
+    <tr><td>IULUI · CircleSpin</td><td class="best">0.191</td><td>0.561</td><td>0.551</td><td>0.429</td><td>0.320</td></tr>
+    <tr><td>MILUV · random3</td><td class="best">0.229</td><td>0.361</td><td>0.361</td><td>0.721</td><td>0.390</td></tr>
+    <tr><td>MILUV · circular3D</td><td class="best">0.367</td><td>0.612</td><td>0.613</td><td>0.645</td><td>0.663</td></tr>
+    <tr><td>MILUV · lowPace</td><td class="best">0.164</td><td>0.384</td><td>0.384</td><td>0.667</td><td>0.407</td></tr>
+    <tr><td>NTU VIRAL · eee_01</td><td class="best">0.743</td><td>9.167</td><td>8.637</td><td>—</td><td>8.943</td></tr>
+    <tr><td>NTU VIRAL · eee_02</td><td class="best">1.636</td><td>6.366</td><td>6.252</td><td>—</td><td>5.830</td></tr>
+    <tr><td>NTU VIRAL · eee_03</td><td class="best">1.371</td><td>6.832</td><td>6.695</td><td>—</td><td>6.493</td></tr>
+  </table>
+  <p class="cap">— : diverged. The RTS smoothers see the <em>entire</em> future measurement history
+     and still mirror; KIMS uses only a 15–18-epoch lag.</p>
+</section>
+
+<section class="wrap">
+  <h2><span class="accent">🛰</span> The IULUI dataset</h2>
+  <p>The repository ships <strong>IULUI</strong>, our UWB-IMU flight campaign built specifically to
+     study coplanar-anchor degeneracy: four anchors at nearly the same height, and trajectories
+     that repeatedly cross the anchor plane — exactly the regime where fixed side-of-plane priors
+     reject valid states. Three sequences (<code>SquareBob</code>, <code>SquareTurn</code>,
+     <code>CircleSpin</code>), raw UWB ranges (2 tags × 4 anchors) + 46 Hz IMU, motion-capture
+     ground truth, as rosbag and CSV. MILUV and NTU VIRAL evaluation sequences are included too.</p>
+</section>
+
+<section class="wrap">
+  <h2><span class="accent">⚡</span> Quick start</h2>
+  <pre># offline — no ROS needed
+cmake -S . -B build -DKIMS_NO_ROS=ON &amp;&amp; cmake --build build -j8
+python3 scripts/run.py --method all --dataset all
+python3 scripts/plot.py
+
+# online — real-time ROS node, works on all three datasets
+roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
+  <p>Docker, per-dataset instructions and the online node's topics are in the
+     <a style="color:var(--teal)" href="https://github.com/AM2TD/kims#readme">README</a>.</p>
+</section>
+
+<section id="paper" class="wrap">
+  <h2><span class="accent">✎</span> Paper &amp; citation</h2>
+  <p>Under review, IEEE Robotics and Automation Letters (RA-L), 2026.</p>
+  <pre>@article{kims2026,
+  title   = {KIMS: Kinematic-Constrained MPPI Smoothing for
+             UWB-IMU 6-DoF Pose Estimation},
+  journal = {IEEE Robotics and Automation Letters (under review)},
+  year    = {2026}
+}</pre>
+</section>
+
+<footer class="wrap">
+  MIT License · datasets redistributed under their upstream terms
+</footer>
+
+</body>
+</html>

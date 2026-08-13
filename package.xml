@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>kims</name>
+  <version>1.0.0</version>
+  <description>
+    KIMS: Kinematic-Constrained MPPI Smoothing for UWB-IMU 6-DoF Pose Estimation.
+    Offline evaluation of KIMS and the EKF-RTS, UKF-RTS, Particle Smoothing and
+    SW-MAP baselines on MILUV, NTU VIRAL and IULUI, plus a real-time ROS node.
+    The offline tools read CSV and build without ROS.
+  </description>
+  <maintainer email="anonymous@anonymous.invalid">Anonymous</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+  <depend>roscpp</depend>
+  <depend>rospy</depend>
+  <depend>roslib</depend>
+  <depend>std_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>tf2_ros</depend>
+  <depend>nav_msgs</depend>
+  <depend>nlink_parser</depend>
+</package>

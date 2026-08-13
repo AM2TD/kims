@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <!-- Usage: roslaunch kims kims.launch dataset:=iului sequence:=SquareBob -->
+  <arg name="dataset"  default="all" doc="iului | miluv | ntu | all" />
+  <arg name="sequence" default="all" doc="sequence name or all" />
+  <node name="kims_runner" pkg="kims" type="run.py" output="screen" required="true"
+        args="--method kims --dataset $(arg dataset) --sequence $(arg sequence)" />
+</launch>

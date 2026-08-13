@@ -1,0 +1,7 @@
+build
+.result_paper_ref
+result/*/*/plots
+docker
+**/__pycache__
+*.pyc
+.git

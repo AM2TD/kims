@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="dataset"    default="iului" doc="iului | miluv | ntu" />
+  <arg name="sequence"   default=""      doc="sequence name, empty = first of the dataset" />
+  <arg name="play"       default="true"  doc="replay the dataset CSVs as topics" />
+  <arg name="rate"       default="1.0"   doc="replay speed multiplier" />
+  <arg name="loop"       default="false" />
+  <arg name="bag"        default=""      doc="replay this rosbag instead of the CSV player" />
+  <arg name="imu_topic"  default="imu"   doc="remap for live sensors" />
+  <arg name="uwb_topic"  default="uwb"   doc="kims/UwbRange topic" />
+  <arg name="uwb_linktrack_topic" default="/nlink_linktrack_tagframe0"
+       doc="nlink_parser/LinktrackTagframe0 topic, used by the IULUI hardware and bags" />
+  <arg name="publish_tf" default="true" />
+
+  <node name="kims_online" pkg="kims" type="kims_online" output="screen">
+    <rosparam command="load" file="$(find kims)/config/online_$(arg dataset).yaml" />
+    <param name="publish_tf" value="$(arg publish_tf)" />
+    <param name="sequence"   value="$(arg sequence)" />
+    <remap from="imu" to="$(arg imu_topic)" />
+    <remap from="uwb" to="$(arg uwb_topic)" />
+    <remap from="imu_sample" to="imu_sample" />
+    <remap from="uwb_linktrack" to="$(arg uwb_linktrack_topic)" />
+  </node>
+
+  <!-- CSV player: turns any sequence into live topics -->
+  <node if="$(eval play and bag == '')" name="replay" pkg="kims" type="replay.py"
+        output="screen" required="true">
+    <param name="dataset"  value="$(arg dataset)" />
+    <param name="sequence" value="$(arg sequence)" />
+    <param name="rate"     value="$(arg rate)" />
+    <param name="loop"     value="$(arg loop)" />
+    <remap from="imu" to="$(arg imu_topic)" />
+    <remap from="uwb" to="$(arg uwb_topic)" />
+  </node>
+
+  <!-- or replay a rosbag (IULUI only, that is the one distributed as bags) -->
+  <group if="$(eval bag != '')">
+    <param name="/use_sim_time" value="true" />
+    <node name="kims_bag" pkg="rosbag" type="play" required="true" output="screen"
+          args="--clock -r $(arg rate) $(arg bag)" />
+  </group>
+</launch>
