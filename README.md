@@ -2,7 +2,7 @@
 
 [**🌐 Project Page**](https://am2td.github.io/kims/) | [**📄 Paper**](https://am2td.github.io/kims/#paper) | [**🎬 Demo**](https://am2td.github.io/kims/#demo)
 
-Under quasi-coplanar UWB anchors the range geometry admits a **mirrored solution** on the other
+When UWB anchors sit at nearly the same height, the range geometry admits a **mirrored solution** on the other
 side of the anchor plane, and once a filter or optimizer drifts into that reflected basin it never
 comes back. **KIMS** recasts MPPI as a fixed-lag smoother that samples *IMU input compensations*
 instead of poses: every candidate trajectory is generated through IMU kinematic propagation, so
@@ -19,7 +19,7 @@ rollouts stay in the basin of the current estimate — no anchor-plane model, no
 ## 🛰️ The IULUI Dataset
 
 This repository ships **IULUI**, our UWB-IMU flight campaign built specifically to study
-**coplanar-anchor degeneracy**. Four anchors sit at nearly the same height (~1.3 m) and the
+**anchor-plane degeneracy**. Four anchors sit at nearly the same height (~1.3 m) and the
 vehicle repeatedly and *legitimately* crosses the anchor plane — exactly the regime where
 known-side or height-bound priors reject valid states and local estimators lock onto the mirror.
 

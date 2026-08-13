@@ -52,7 +52,7 @@
   <h1><span class="accent">KIMS</span>: Kinematic-Constrained MPPI Smoothing<br>for UWB-IMU 6-DoF Pose Estimation</h1>
   <p class="sub">A fixed-lag smoother that samples IMU input compensations instead of poses —
      so every candidate trajectory is kinematically reachable, and the estimate stays out of the
-     mirrored basin that quasi-coplanar UWB anchors create.</p>
+     mirrored basin that UWB anchors at nearly the same height create.</p>
   <div class="btns">
     <a class="btn primary" href="https://github.com/AM2TD/kims">Code</a>
     <a class="btn" href="#paper">Paper</a>
@@ -85,10 +85,17 @@
       </video>
       <p class="cap">MILUV <code>random3_0</code> — indoor, mocap ground truth</p>
     </div>
+    <div>
+      <video autoplay loop muted playsinline controls>
+        <source src="assets/kims_demo_iului_circlespin.webm" type="video/webm">
+        <source src="assets/kims_demo_iului_circlespin.mp4" type="video/mp4">
+      </video>
+      <p class="cap">IULUI <code>CircleSpin</code> — our dataset, mocap ground truth</p>
+    </div>
   </div>
   <p class="cap">
     KIMS (red) tracking the ground truth (dashed) from UWB ranges + IMU only.
-    The teal grid is the coplanar UWB anchor plane — both flights repeatedly cross it
+    The teal grid is the UWB anchor plane — the flights repeatedly cross it
     without mirroring.
   </p>
 </section>
@@ -139,7 +146,7 @@
 <section class="wrap">
   <h2><span class="accent">🛰</span> The IULUI dataset</h2>
   <p>The repository ships <strong>IULUI</strong>, our UWB-IMU flight campaign built specifically to
-     study coplanar-anchor degeneracy: four anchors at nearly the same height, and trajectories
+     study anchor-plane degeneracy: four anchors at nearly the same height, and trajectories
      that repeatedly cross the anchor plane — exactly the regime where fixed side-of-plane priors
      reject valid states. Three sequences (<code>SquareBob</code>, <code>SquareTurn</code>,
      <code>CircleSpin</code>), raw UWB ranges (2 tags × 4 anchors) + 46 Hz IMU, motion-capture
