@@ -11,8 +11,7 @@ rollouts stay in the basin of the current estimate — no anchor-plane model, no
 - 🛡️ **Flip-ambiguity robust** — tracks flights that repeatedly cross an elevated anchor plane
 - ⚡ **Real-time on GPU** — 10,000 rollouts per UWB epoch, runs onboard (Jetson Orin NX)
 - 📦 **Batteries included** — all three datasets ship in `data/`, nothing to download
-- 🔁 **One estimator, two front-ends** — offline CSV evaluation (no ROS) and a live ROS node that
-  produces **bit-identical** results on the same data
+
 
 ---
 
@@ -29,12 +28,11 @@ known-side or height-bound priors reject valid states and local estimators lock 
 | `SquareTurn` | square path with yawing corners | orientation coupling through the two-tag lever arm |
 | `CircleSpin` | 2 m/s circle while spinning in yaw | continuous yaw + crossings, the hardest case |
 
-Each sequence provides raw UWB ranges (2 tags × 4 anchors, Nooploop LinkTrack), a 46 Hz IMU, and
+Each sequence provides raw UWB ranges (2 tags × 4 anchors, Nooploop LinkTrack), a IMU, and
 motion-capture ground truth — as both a rosbag and pre-extracted CSV.
 
 > [!NOTE]
-> Sequences from **MILUV** and **NTU VIRAL** are included for evaluation as well, so the full
-> paper sweep runs out of the box.
+> Sequences from **MILUV** and **NTU VIRAL** are included for evaluation as well.
 
 ---
 
@@ -104,15 +102,7 @@ python3 scripts/plot.py                  # everything found under result/
 python3 scripts/plot.py --dataset iului  # one dataset
 ```
 
-Prints per-sequence RMSE — position `[m]` and orientation `[rad]` — for every method, and saves
-box plots, 3-D trajectories and per-axis figures to `result/<dataset>/<sequence>/plots/`:
 
-```
-data   sequence     method    pos[m]  ori[rad]
-iului  CircleSpin   KIMS       0.191     0.119
-iului  CircleSpin   SW-MAP     0.320     0.230
-...
-```
 
 ### 4. Tweak
 
@@ -156,12 +146,6 @@ roslaunch kims kims_online.launch dataset:=iului play:=false \
     imu_topic:=/mavros/imu/data uwb_linktrack_topic:=/nlink_linktrack_tagframe0
 ```
 
-Every committed pose is echoed to the terminal as it happens:
-
-```
-[kims] #  2000  t=   28.59  pos=[   0.323  -1.483   0.501 ]  quat=[ -0.0594 -0.0772  0.9952 -0.0128 ]  1.7 ms
-```
-
 For your own vehicle, publish one `kims/UwbRange` message per tag-anchor range and the node needs
 nothing else — anchors, tag lever arms and tag ids are plain rosparams.
 
@@ -193,16 +177,6 @@ kims/
 ```
 
 ---
-
-## 📄 Citation
-
-```bibtex
-@article{kims2026,
-  title   = {KIMS: Kinematic-Constrained MPPI Smoothing for UWB-IMU 6-DoF Pose Estimation},
-  journal = {IEEE Robotics and Automation Letters (under review)},
-  year    = {2026}
-}
-```
 
 ## ⚖️ License
 
