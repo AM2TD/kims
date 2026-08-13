@@ -37,6 +37,9 @@
   td.best{color:var(--red);font-weight:700}
   .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:18px}
   .vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .figcard{background:#fff;border-radius:12px;padding:14px;margin-top:18px}
+  .figcard img{width:100%;display:block}
+  .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
   .card h3{font-size:1.0rem;margin-bottom:6px}
   .card p{font-size:.9rem;margin:0}
@@ -70,10 +73,7 @@
   <p class="cap">
     The sampler on real footage — every rollout of the current window projected into the
     flight-arena camera, so the sampled input compensations are seen against the vehicle
-    they explain. The whole <code>CircleSpin</code> flight, takeoff to touchdown, in real
-    time; camera pose recovered by PnP against the motion-capture track. Also as
-    <a style="color:var(--teal)" href="assets/kims_demo_iului_onboard_full.mp4">2&times; speed</a>
-    or a <a style="color:var(--teal)" href="assets/kims_demo_iului_onboard.mp4">15 s excerpt</a>.
+    they explain. The whole <code>CircleSpin</code> flight, takeoff to touchdown, in real time.
   </p>
   <div class="vgrid">
     <div>
@@ -138,6 +138,11 @@
      each epoch all stay within the kinematically reachable neighbourhood of the current estimate.
      Basin confinement emerges from the sampling structure itself: no anchor-plane model, no
      known-side or height-bound prior.</p>
+  <div class="figcard"><img src="assets/fig_pipeline.png" alt="KIMS pipeline"></div>
+  <p class="cap">One window of the smoother: UWB ranges and timestamp-aligned IMU are accumulated
+     (a), <em>N</em> input compensations are sampled around the raw IMU (b), each is propagated
+     through IMU kinematics from the window-start state (c), and UWB residuals turn into
+     importance weights whose weighted mean commits the oldest state (d).</p>
   <div class="grid">
     <div class="card"><h3>Flip-robust</h3>
       <p>Tracks flights that repeatedly and legitimately cross an elevated anchor plane.</p></div>
@@ -167,6 +172,16 @@
   </table>
   <p class="cap">— : diverged. The RTS smoothers see the <em>entire</em> future measurement history
      and still mirror; KIMS uses only a 15–18-epoch lag.</p>
+
+  <div class="figcard"><img src="assets/fig_boxplot.png" alt="Per-sequence error distributions on IULUI"></div>
+  <p class="cap">Error distributions on IULUI — position (top) and orientation (bottom). KIMS is
+     not just lower on average, its spread stays tight where the baselines develop long tails
+     from mirrored excursions.</p>
+
+  <div class="figcard"><img src="assets/fig_sensitivity.png" alt="Rollout-count sensitivity"></div>
+  <p class="cap">Rollout-count sensitivity. (a) Position RMSE against the number of sampled
+     rollouts <em>N</em> on all three datasets. (b) Solve time on a Jetson Orin NX, mean and
+     standard deviation per solve; the dashed lines are the 10 ms UWB and 20 ms IMU periods.</p>
 </section>
 
 <section class="wrap">
