@@ -36,8 +36,7 @@
   th{color:var(--dim);font-weight:600}
   td.best{color:var(--red);font-weight:700}
   .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:18px}
-  .vgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media(max-width:720px){.vgrid{grid-template-columns:1fr}}
+  .vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
   .card h3{font-size:1.0rem;margin-bottom:6px}
   .card p{font-size:.9rem;margin:0}
@@ -78,6 +77,13 @@
         <source src="assets/kims_demo_miluv_lowpace.mp4" type="video/mp4">
       </video>
       <p class="cap">MILUV <code>remoteControlLowPace_0_v2</code> — indoor, mocap ground truth</p>
+    </div>
+    <div>
+      <video autoplay loop muted playsinline controls>
+        <source src="assets/kims_demo_miluv_random3.webm" type="video/webm">
+        <source src="assets/kims_demo_miluv_random3.mp4" type="video/mp4">
+      </video>
+      <p class="cap">MILUV <code>random3_0</code> — indoor, mocap ground truth</p>
     </div>
   </div>
   <p class="cap">
