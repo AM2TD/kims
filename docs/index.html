@@ -37,6 +37,19 @@
   td.best{color:var(--red);font-weight:700}
   .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:18px}
   .vgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .carousel{position:relative}
+  .slide{display:none}
+  .slide[data-active]{display:block}
+  .cnav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;
+        width:42px;height:64px;border:none;border-radius:8px;cursor:pointer;
+        background:#0009;color:#fff;font-size:1.4rem;line-height:1}
+  .cnav:hover{background:#000c}
+  .cnav.prev{left:10px} .cnav.next{right:10px}
+  .cdots{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  .cdots button{width:9px;height:9px;padding:0;border-radius:50%;cursor:pointer;
+                border:1px solid var(--dim);background:transparent}
+  .cdots button[data-active]{background:var(--red);border-color:var(--red)}
+  .cname{color:var(--ink);font-weight:600}
   .figcard{background:#fff;border-radius:12px;padding:14px;margin-top:18px}
   .figcard img{width:100%;display:block}
   .fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
@@ -66,14 +79,38 @@
 
 <section id="demo" class="wrap">
   <h2><span class="accent">▶</span> Demo</h2>
-  <video controls playsinline preload="metadata" poster="assets/kims_demo_onboard_poster.jpg">
-    <source src="assets/kims_demo_iului_onboard_rt.webm" type="video/webm">
-    <source src="assets/kims_demo_iului_onboard_rt.mp4" type="video/mp4">
-  </video>
+  <div class="carousel">
+    <div class="slide" data-active>
+      <video controls playsinline preload="metadata" poster="assets/poster_circlespin.jpg">
+        <source src="assets/kims_demo_iului_onboard_rt.webm" type="video/webm">
+        <source src="assets/kims_demo_iului_onboard_rt.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="slide">
+      <video controls playsinline preload="none" poster="assets/poster_squarebob.jpg">
+        <source src="assets/kims_demo_iului_onboard_squarebob.webm" type="video/webm">
+        <source src="assets/kims_demo_iului_onboard_squarebob.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="slide">
+      <video controls playsinline preload="none" poster="assets/poster_squareturn.jpg">
+        <source src="assets/kims_demo_iului_onboard_squareturn.webm" type="video/webm">
+        <source src="assets/kims_demo_iului_onboard_squareturn.mp4" type="video/mp4">
+      </video>
+    </div>
+    <button class="cnav prev" aria-label="Previous sequence">&#10094;</button>
+    <button class="cnav next" aria-label="Next sequence">&#10095;</button>
+  </div>
+  <div class="cdots">
+    <button data-i="0" aria-label="CircleSpin"></button>
+    <button data-i="1" aria-label="SquareBob"></button>
+    <button data-i="2" aria-label="SquareTurn"></button>
+  </div>
   <p class="cap">
     The sampler on real footage — every rollout of the current window projected into the
     flight-arena camera, so the sampled input compensations are seen against the vehicle
-    they explain. The whole <code>CircleSpin</code> flight, takeoff to touchdown, in real time.
+    they explain. Each IULUI sequence, takeoff to touchdown, in real time.
+    <span class="cname">CircleSpin</span>
   </p>
   <div class="vgrid">
     <div>
@@ -221,6 +258,41 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
 <footer class="wrap">
   MIT License · datasets redistributed under their upstream terms
 </footer>
+
+<script>
+(function () {
+  var slides = document.querySelectorAll('.carousel .slide');
+  var dots = document.querySelectorAll('.cdots button');
+  var name = document.querySelector('.cname');
+  var names = ['CircleSpin', 'SquareBob', 'SquareTurn'];
+  var i = 0;
+
+  function show(n) {
+    i = (n + slides.length) % slides.length;
+    slides.forEach(function (s, k) {
+      var v = s.querySelector('video');
+      if (k === i) { s.setAttribute('data-active', ''); }
+      else { s.removeAttribute('data-active'); v.pause(); }
+    });
+    dots.forEach(function (d, k) {
+      if (k === i) { d.setAttribute('data-active', ''); }
+      else { d.removeAttribute('data-active'); }
+    });
+    name.textContent = names[i];
+  }
+
+  document.querySelector('.cnav.prev').addEventListener('click', function () { show(i - 1); });
+  document.querySelector('.cnav.next').addEventListener('click', function () { show(i + 1); });
+  dots.forEach(function (d) {
+    d.addEventListener('click', function () { show(parseInt(d.dataset.i, 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowLeft') show(i - 1);
+    if (e.key === 'ArrowRight') show(i + 1);
+  });
+  show(0);
+})();
+</script>
 
 </body>
 </html>
