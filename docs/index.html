@@ -63,16 +63,17 @@
 
 <section id="demo" class="wrap">
   <h2><span class="accent">▶</span> Demo</h2>
-  <video autoplay loop muted playsinline controls>
-    <source src="assets/kims_demo_iului_onboard_full.webm" type="video/webm">
-    <source src="assets/kims_demo_iului_onboard_full.mp4" type="video/mp4">
+  <video controls playsinline preload="metadata" poster="assets/kims_demo_onboard_poster.jpg">
+    <source src="assets/kims_demo_iului_onboard_rt.webm" type="video/webm">
+    <source src="assets/kims_demo_iului_onboard_rt.mp4" type="video/mp4">
   </video>
   <p class="cap">
     The sampler on real footage — every rollout of the current window projected into the
     flight-arena camera, so the sampled input compensations are seen against the vehicle
-    they explain. Full <code>CircleSpin</code> flight to touchdown at 2&times; speed; camera
-    pose recovered by PnP against the motion-capture track.
-    <a style="color:var(--teal)" href="assets/kims_demo_iului_onboard.mp4">Real-time excerpt</a>
+    they explain. The whole <code>CircleSpin</code> flight, takeoff to touchdown, in real
+    time; camera pose recovered by PnP against the motion-capture track. Also as
+    <a style="color:var(--teal)" href="assets/kims_demo_iului_onboard_full.mp4">2&times; speed</a>
+    or a <a style="color:var(--teal)" href="assets/kims_demo_iului_onboard.mp4">15 s excerpt</a>.
   </p>
   <div class="vgrid">
     <div>
