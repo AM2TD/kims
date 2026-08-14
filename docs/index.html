@@ -227,8 +227,16 @@
      study anchor-plane degeneracy: four anchors at nearly the same height, and trajectories
      that repeatedly cross the anchor plane — exactly the regime where fixed side-of-plane priors
      reject valid states. Three sequences (<code>SquareBob</code>, <code>SquareTurn</code>,
-     <code>CircleSpin</code>), raw UWB ranges (2 tags × 4 anchors) + 46 Hz IMU, motion-capture
+     <code>CircleSpin</code>), raw UWB ranges (2 tags × 4 anchors) + IMU, motion-capture
      ground truth, as rosbag and CSV. MILUV and NTU VIRAL evaluation sequences are included too.</p>
+  <p><strong>Deployment scale.</strong> The four anchors sit on a 5.9 × 5.9 m square at 1.30 m
+     height with under 8 mm of height spread (exactly coplanar in practice). The flights span a
+     3.7 × 3.8 × 1.7 m volume, 82–97 s and 36–144 m of path per sequence, repeatedly crossing
+     the anchor plane (30 ground-truth crossings over the three sequences).</p>
+  <p><strong>Sensor rates.</strong> Nooploop LinkTrack ranges arrive as 100 Hz epochs (10 ms),
+     the onboard IMU runs at ~50 Hz (20 ms), and Qualisys ground truth at 70 Hz. The UWB epoch
+     rate being higher than the IMU rate is intentional in this campaign — IMU samples are
+     interpolated to UWB timestamps by the estimator.</p>
 </section>
 
 <section class="wrap">

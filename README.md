@@ -114,6 +114,14 @@ the command line without rebuilding:
 python3 scripts/run.py --method kims --dataset ntu -- N:=3000 T:=10 gamma:=5.0
 ```
 
+> [!NOTE]
+> The compensation penalty of Eq. (7) in the paper is the quadratic form on MILUV
+> (`ctrl_mode 0`, `Σu = diag(σ²/w)`) and the bounded per-axis Tukey form on IULUI and
+> NTU VIRAL (`ctrl_mode 1`). The Tukey scales `sigma_imu_acc`/`sigma_imu_gyr` are
+> 2.33/0.17 on IULUI and 0.33/0.06 on NTU VIRAL, with cutoff `ctrl_delta` 0.86 and 1.00.
+> All of these live in `include/presets.h` and can be overridden as `sigma_imu_acc:=`,
+> `ctrl_delta:=`, `ctrl_mode:=` at the command line.
+
 ---
 
 ## 📡 Quick Start — Online
