@@ -237,11 +237,13 @@
      the onboard IMU runs at ~50 Hz (20 ms), and Qualisys ground truth at 70 Hz. The UWB epoch
      rate being higher than the IMU rate is intentional in this campaign — IMU samples are
      interpolated to UWB timestamps by the estimator.</p>
-  <img src="assets/fig_z_crossings.png" alt="Altitude versus time on the three IULUI sequences"
+  <img src="assets/fig_z_crossings.png"
+       alt="Altitude versus time for all methods on the three IULUI sequences"
        style="width:100%;border-radius:12px;margin-top:14px">
   <p class="cap">Altitude over each flight. Every sequence repeatedly crosses the anchor plane
-     (teal), where the true and mirrored solutions meet — KIMS (red) stays on the true branch
-     throughout, never switching onto the mirrored ground truth (faint dotted).</p>
+     (teal), where the true and mirrored solutions meet. Each baseline jumps onto the mirrored
+     branch (faint dotted) on at least one sequence, while KIMS (red) tracks the true branch
+     aside from sub-second transients near crossings.</p>
 </section>
 
 <section class="wrap">
