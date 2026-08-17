@@ -292,11 +292,18 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
      from the plane, episodes of at least 0.2 s).</p>
   <table>
     <tr><th>Sequence</th><th>Position RMSE [m]</th><th>Occupancy [%]</th><th>Episodes</th><th>Max episode [s]</th><th>Median episode [s]</th></tr>
+    <tr><td colspan="6" style="text-align:left;color:var(--dim);font-size:.85rem">Rows marked <em>paper</em> are the single default-seed runs shipped with the code and match Tables I and III of the paper. The following rows are mean ± std over the ten additional seeds; solve times are not part of this table.</td></tr>
     <tr><th colspan="6" style="text-align:left;color:var(--ink);padding-top:12px">KIMS</th></tr>
+    <tr><td>SquareBob <span style="color:var(--dim)">(paper, default seed)</span></td><td>0.139</td><td>0.0</td><td>0</td><td>0.00</td><td>0.00</td></tr>
+    <tr><td>SquareTurn <span style="color:var(--dim)">(paper, default seed)</span></td><td>0.159</td><td>1.6</td><td>1</td><td>0.67</td><td>0.67</td></tr>
+    <tr><td>CircleSpin <span style="color:var(--dim)">(paper, default seed)</span></td><td>0.191</td><td>4.5</td><td>5</td><td>0.92</td><td>0.33</td></tr>
     <tr><td>SquareBob</td><td>0.142 ± 0.005</td><td>0.0 ± 0.0</td><td>0.0 ± 0.0</td><td>0.00 ± 0.00</td><td>0.00 ± 0.00</td></tr>
     <tr><td>SquareTurn</td><td>0.213 ± 0.176</td><td>5.1 ± 10.5</td><td>1.2 ± 0.6</td><td>1.64 ± 2.90</td><td>1.40 ± 2.19</td></tr>
     <tr><td>CircleSpin</td><td>0.349 ± 0.069</td><td>13.6 ± 3.6</td><td>7.0 ± 0.6</td><td>3.50 ± 0.92</td><td>0.74 ± 0.34</td></tr>
     <tr><th colspan="6" style="text-align:left;color:var(--ink);padding-top:12px">Particle Smoothing, 1,000 particles</th></tr>
+    <tr><td>SquareBob <span style="color:var(--dim)">(paper, default seed)</span></td><td>0.335</td><td>19.8</td><td>7</td><td>3.83</td><td>1.54</td></tr>
+    <tr><td>SquareTurn <span style="color:var(--dim)">(paper, default seed)</span></td><td>0.922</td><td>72.1</td><td>8</td><td>10.54</td><td>3.16</td></tr>
+    <tr><td>CircleSpin <span style="color:var(--dim)">(paper, default seed)</span></td><td>0.429</td><td>22.3</td><td>11</td><td>2.70</td><td>0.74</td></tr>
     <tr><td>SquareBob</td><td>0.402 ± 0.109</td><td>27.1 ± 9.4</td><td>7.4 ± 1.2</td><td>4.95 ± 2.27</td><td>1.81 ± 0.62</td></tr>
     <tr><td>SquareTurn</td><td>0.849 ± 0.086</td><td>59.2 ± 11.0</td><td>8.6 ± 1.4</td><td>9.70 ± 0.97</td><td>1.98 ± 2.19</td></tr>
     <tr><td>CircleSpin</td><td>0.481 ± 0.082</td><td>26.1 ± 5.1</td><td>12.2 ± 1.8</td><td>3.35 ± 0.72</td><td>0.90 ± 0.31</td></tr>
