@@ -23,7 +23,8 @@ public:
                const double* h_sigma,
                const double* tag_offsets,
                int num_anchors,
-               int num_tags);
+               int num_tags,
+               unsigned long seed = SEED);
     ~MPPISolver();
 
     void setDt(double dt);

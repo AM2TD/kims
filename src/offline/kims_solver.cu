@@ -114,7 +114,8 @@ MPPISolver::MPPISolver(int N, int T, double dt, double gamma,
                        const double* h_sigma,
                        const double* tag_offsets,
                        int num_anchors,
-                       int num_tags)
+                       int num_tags,
+                       unsigned long seed)
     : N_(N), T_(T), dt_(dt), gamma_(gamma),
       num_anchors_(num_anchors), num_tags_(num_tags) {
 
@@ -139,7 +140,7 @@ MPPISolver::MPPISolver(int N, int T, double dt, double gamma,
 
     cudaMalloc(&d_states_, CHUNK * sizeof(curandStatePhilox4_32_10_t));
     init_rng<<<(CHUNK + BLOCK_SIZE - 1) / BLOCK_SIZE,
-               BLOCK_SIZE, 0, rngS_>>>(d_states_, SEED, CHUNK);
+               BLOCK_SIZE, 0, rngS_>>>(d_states_, seed, CHUNK);
 
     h_cost_.resize(N_);
     h_Ui_.resize(N_ * T_ * DIM_U);

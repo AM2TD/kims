@@ -55,7 +55,8 @@ int main(int argc, char** argv) {
     const double gravity[3] = {0.0, 0.0, -9.81};
 
     MPPISolver solver(N, T, dt, gamma, S.anchors.data(), gravity, sigma,
-                      S.tag_offsets.data(), S.num_anchors, S.num_tags);
+                      S.tag_offsets.data(), S.num_anchors, S.num_tags,
+                      static_cast<unsigned long>(getArg<int>(args, "seed", SEED)));
     solver.w_uwb_ = w_uwb;
     solver.w_acc_ = w_acc;
     solver.w_gyr_ = w_gyr;

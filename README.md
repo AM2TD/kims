@@ -122,6 +122,12 @@ python3 scripts/run.py --method kims --dataset ntu -- N:=3000 T:=10 gamma:=5.0
 > All of these live in `include/presets.h` and can be overridden as `sigma_imu_acc:=`,
 > `ctrl_delta:=`, `ctrl_mode:=` at the command line.
 
+> [!TIP]
+> Both stochastic methods expose their random seed: `seed:=` for `kims` (default 1234, the
+> published runs) and for `particle_smoothing` (default 42), together with `num_particles:=`.
+> The seed-repetition statistics on the project page were produced by sweeping `seed:=1001..1010`
+> for KIMS and `seed:=101..110` for Particle Smoothing at 1,000 and 10,000 particles.
+
 ---
 
 ## 📡 Quick Start — Online

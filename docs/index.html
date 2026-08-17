@@ -259,6 +259,89 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
      <a style="color:var(--teal)" href="https://github.com/AM2TD/kims#readme">README</a>.</p>
 </section>
 
+<section id="timing" class="wrap">
+  <h2><span class="accent">⏱</span> Solve-time distribution on the Jetson Orin NX</h2>
+  <p>Per-solve wall-clock time of the KIMS GPU solver measured onboard a Jetson Orin NX over
+     5,893 UWB epochs of an IULUI flight (10 ms epoch period, <em>T</em> = 15). The paper quotes
+     the mean at <em>N</em> = 10,000; the full distribution is below. Real time in the paper means
+     sustained throughput at the sensor rate: a solve that spills past one epoch is absorbed by
+     the next window rather than dropped.</p>
+  <table>
+    <tr><th>Rollouts <em>N</em></th><th>mean [ms]</th><th>median</th><th>p95</th><th>p99</th><th>max</th><th>&gt; 10 ms</th><th>&gt; 20 ms</th></tr>
+    <tr><td>256</td><td>1.54</td><td>1.14</td><td>3.75</td><td>4.99</td><td>16.4</td><td>0.03%</td><td>0%</td></tr>
+    <tr><td>1,024</td><td>1.78</td><td>1.59</td><td>3.00</td><td>4.38</td><td>6.0</td><td>0%</td><td>0%</td></tr>
+    <tr><td>4,096</td><td>4.24</td><td>3.94</td><td>6.44</td><td>8.52</td><td>24.1</td><td>0.20%</td><td>0.02%</td></tr>
+    <tr><td>8,192</td><td>7.17</td><td>7.26</td><td>8.70</td><td>10.20</td><td>23.9</td><td>1.34%</td><td>0.03%</td></tr>
+    <tr><td class="best">10,000</td><td class="best">9.11</td><td class="best">8.49</td><td class="best">13.57</td><td class="best">15.67</td><td class="best">30.6</td><td class="best">18.85%</td><td class="best">0.14%</td></tr>
+    <tr><td>16,384</td><td>12.97</td><td>12.23</td><td>16.00</td><td>17.98</td><td>43.1</td><td>100%</td><td>0.37%</td></tr>
+  </table>
+  <p class="cap">Two latencies should not be confused. The <em>computational</em> latency above is
+     the time to produce one solve. The <em>estimation</em> latency of a fixed-lag smoother is
+     structural: the committed state is <em>T</em> epochs behind the newest measurement (150 ms
+     at <em>T</em> = 15, 10 ms epochs); a controller that needs the current pose would read the
+     propagated window head instead. Timing files: <code>result/&lt;dataset&gt;/&lt;seq&gt;/kims_timing.txt</code>.</p>
+</section>
+
+<section id="seeds" class="wrap">
+  <h2><span class="accent">🎲</span> Seed repetition</h2>
+  <p>Both stochastic estimators were re-run over ten random seeds on the three IULUI sequences
+     (KIMS <code>seed:=1001…1010</code>, Particle Smoothing <code>seed:=101…110</code>). The paper
+     reports the shipped default seeds (1234 and 42), which are what the released code reproduces.
+     Values are mean ± std over seeds; occupancy and episodes use the paper's definitions (gated to
+     0.25 m from the plane, episodes of at least 0.2 s).</p>
+  <table>
+    <tr><th>Sequence</th><th>Position RMSE [m]</th><th>Occupancy [%]</th><th>Episodes</th><th>Max episode [s]</th><th>Median episode [s]</th></tr>
+    <tr><th colspan="6" style="text-align:left;color:var(--ink);padding-top:12px">KIMS</th></tr>
+    <tr><td>SquareBob</td><td>0.142 ± 0.005</td><td>0.0 ± 0.0</td><td>0.0 ± 0.0</td><td>0.00 ± 0.00</td><td>0.00 ± 0.00</td></tr>
+    <tr><td>SquareTurn</td><td>0.213 ± 0.176</td><td>5.1 ± 10.5</td><td>1.2 ± 0.6</td><td>1.64 ± 2.90</td><td>1.40 ± 2.19</td></tr>
+    <tr><td>CircleSpin</td><td>0.349 ± 0.069</td><td>13.6 ± 3.6</td><td>7.0 ± 0.6</td><td>3.50 ± 0.92</td><td>0.74 ± 0.34</td></tr>
+    <tr><th colspan="6" style="text-align:left;color:var(--ink);padding-top:12px">Particle Smoothing, 1,000 particles</th></tr>
+    <tr><td>SquareBob</td><td>0.402 ± 0.109</td><td>27.1 ± 9.4</td><td>7.4 ± 1.2</td><td>4.95 ± 2.27</td><td>1.81 ± 0.62</td></tr>
+    <tr><td>SquareTurn</td><td>0.849 ± 0.086</td><td>59.2 ± 11.0</td><td>8.6 ± 1.4</td><td>9.70 ± 0.97</td><td>1.98 ± 2.19</td></tr>
+    <tr><td>CircleSpin</td><td>0.481 ± 0.082</td><td>26.1 ± 5.1</td><td>12.2 ± 1.8</td><td>3.35 ± 0.72</td><td>0.90 ± 0.31</td></tr>
+    <tr><th colspan="6" style="text-align:left;color:var(--ink);padding-top:12px">Particle Smoothing, 10,000 particles</th></tr>
+    <tr><td>SquareBob</td><td>0.255 ± 0.005</td><td>17.2 ± 1.3</td><td>7.2 ± 0.4</td><td>2.66 ± 0.60</td><td>1.19 ± 0.15</td></tr>
+    <tr><td>SquareTurn</td><td>0.877 ± 0.022</td><td>67.0 ± 6.5</td><td>9.7 ± 1.2</td><td>9.28 ± 1.10</td><td>1.94 ± 1.12</td></tr>
+    <tr><td>CircleSpin</td><td>0.491 ± 0.042</td><td>25.0 ± 4.1</td><td>12.8 ± 1.3</td><td>2.60 ± 0.02</td><td>0.65 ± 0.05</td></tr>
+  </table>
+  <p class="cap">KIMS stays below every baseline on all sequences at every seed. Its spread comes
+     from transients at plane crossings rather than consolidation in the mirrored basin: on
+     <code>SquareTurn</code> nine seeds match the paper and one seed carries a longer excursion, and
+     on <code>CircleSpin</code> the run-to-run variation is 3–4 percentage points of occupancy.
+     Particle Smoothing collapses at every seed, and raising the particle count tenfold (equal to
+     the KIMS rollout budget) does not change that, so the collapse is structural under a
+     reflection-symmetric likelihood rather than a budget artifact.</p>
+</section>
+
+<section id="baselines" class="wrap">
+  <h2><span class="accent">⚖</span> Baseline implementations</h2>
+  <p>All baselines share the same measurements, extrinsics, robust loss, and cold start as
+     KIMS, and were tuned once per dataset. The exact implementations are in
+     <code>src/offline/</code>; the two that reviewers most often ask about are specified here.</p>
+  <h3 style="font-size:1.0rem;margin:14px 0 6px">SW-MAP (sliding-window MAP)</h3>
+  <table>
+    <tr><th>Factor</th><th style="text-align:left">Residual</th><th style="text-align:left">Weighting</th></tr>
+    <tr><td>UWB range</td>
+        <td style="text-align:left">‖p<sub>A</sub><sup>(i)</sup> − (p<sub>k</sub> + R<sub>k</sub> p<sub>T<sub>j</sub></sub><sup>B</sup>)‖ − y<sub>i,j,k</sub>, one per tag-anchor pair per keyframe</td>
+        <td style="text-align:left">Tukey loss (Ceres <code>TukeyLoss</code>), cutoff 3.0 on the raw range residual</td></tr>
+    <tr><td>IMU preintegration</td>
+        <td style="text-align:left">9-D on-manifold residual between consecutive keyframes: Δp, Δv (world frame, gravity-compensated) and Δq via the quaternion error</td>
+        <td style="text-align:left">Unit weight on Δp and Δv, rotation weight 6.0 on the vector part of Δq</td></tr>
+    <tr><td>Arrival prior</td>
+        <td style="text-align:left">Oldest keyframe of the window (previously committed pose, velocity, and quaternion)</td>
+        <td style="text-align:left">Held constant (fixed parameter blocks)</td></tr>
+  </table>
+  <p class="cap">Window 20 keyframes on IULUI and 15 on MILUV / NTU VIRAL; quaternions on the
+     Eigen quaternion manifold; Levenberg-Marquardt with a dense Schur solver; the oldest state
+     is committed after each solve and the window slides by one keyframe.</p>
+  <h3 style="font-size:1.0rem;margin:14px 0 6px">Particle Smoothing</h3>
+  <p>Bootstrap particle filter with adaptive (ESS-triggered) systematic resampling and fixed-lag
+     smoothing over the particle genealogy, 1,000 particles in the paper for real-time
+     feasibility. A sample-matched run with 10,000 particles (equal to the KIMS rollout budget)
+     is reported on this page below and in the paper; run it yourself with
+     <code>python3 scripts/run.py --method particle_smoothing --dataset iului -- num_particles:=10000</code>.</p>
+</section>
+
 <section id="paper" class="wrap">
   <h2><span class="accent">✎</span> Paper &amp; citation</h2>
   <p>Under review, IEEE Robotics and Automation Letters (RA-L), 2026.</p>
