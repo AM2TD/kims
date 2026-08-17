@@ -140,7 +140,7 @@ int main(int argc, char** argv) {
     const int num_tags = static_cast<int>(tag_ids.size());
     const int num_anc  = static_cast<int>(anchor_ids.size());
 
-    int    N_part      = getArg<int>   (args, "num_particles", 1000);
+    int    N_part      = getArg<int>   (args, "num_particles", 10000);
     double sigma_uwb   = getArg<double>(args, "sigma_uwb",  is_ntu ? 0.5 : 0.3);
     double sigma_pos   = getArg<double>(args, "sigma_pos",  is_bag ? 0.02 : (is_ntu ? 0.01 : 0.1));
     double sigma_vel   = getArg<double>(args, "sigma_vel",  is_bag ? 0.05 : (is_ntu ? 0.02 : 0.1));

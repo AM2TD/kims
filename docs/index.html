@@ -196,13 +196,13 @@
   <p>Position RMSE [m] against every baseline, tuned once per dataset. Orientation and the
      mirrored-occupancy metrics are in the paper.</p>
   <table>
-    <tr><th>Sequence</th><th>KIMS</th><th>UKF-RTS</th><th>EKF-RTS</th><th>Particle&nbsp;Sm.</th><th>SW-MAP</th></tr>
-    <tr><td>IULUI · SquareBob</td><td class="best">0.139</td><td>0.778</td><td>0.776</td><td>0.335</td><td>0.216</td></tr>
-    <tr><td>IULUI · SquareTurn</td><td class="best">0.159</td><td>0.170</td><td>0.168</td><td>0.922</td><td>0.215</td></tr>
-    <tr><td>IULUI · CircleSpin</td><td class="best">0.191</td><td>0.561</td><td>0.551</td><td>0.429</td><td>0.320</td></tr>
-    <tr><td>MILUV · random3</td><td class="best">0.229</td><td>0.361</td><td>0.361</td><td>0.721</td><td>0.390</td></tr>
-    <tr><td>MILUV · circular3D</td><td class="best">0.367</td><td>0.612</td><td>0.613</td><td>0.645</td><td>0.663</td></tr>
-    <tr><td>MILUV · lowPace</td><td class="best">0.164</td><td>0.384</td><td>0.384</td><td>0.667</td><td>0.407</td></tr>
+    <tr><th>Sequence</th><th>KIMS</th><th>UKF-RTS</th><th>EKF-RTS</th><th>Particle&nbsp;Sm.<br><span style="font-weight:400;font-size:.85em">10,000 particles</span></th><th>SW-MAP</th></tr>
+    <tr><td>IULUI · SquareBob</td><td class="best">0.139</td><td>0.778</td><td>0.776</td><td>0.260</td><td>0.216</td></tr>
+    <tr><td>IULUI · SquareTurn</td><td class="best">0.159</td><td>0.170</td><td>0.168</td><td>0.905</td><td>0.215</td></tr>
+    <tr><td>IULUI · CircleSpin</td><td class="best">0.191</td><td>0.561</td><td>0.551</td><td>0.416</td><td>0.320</td></tr>
+    <tr><td>MILUV · random3</td><td class="best">0.229</td><td>0.361</td><td>0.361</td><td>0.727</td><td>0.390</td></tr>
+    <tr><td>MILUV · circular3D</td><td class="best">0.367</td><td>0.612</td><td>0.613</td><td>0.641</td><td>0.663</td></tr>
+    <tr><td>MILUV · lowPace</td><td class="best">0.164</td><td>0.384</td><td>0.384</td><td>0.656</td><td>0.407</td></tr>
     <tr><td>NTU VIRAL · eee_01</td><td class="best">0.743</td><td>9.167</td><td>8.637</td><td>—</td><td>8.943</td></tr>
     <tr><td>NTU VIRAL · eee_02</td><td class="best">1.636</td><td>6.366</td><td>6.252</td><td>—</td><td>5.830</td></tr>
     <tr><td>NTU VIRAL · eee_03</td><td class="best">1.371</td><td>6.832</td><td>6.695</td><td>—</td><td>6.493</td></tr>
@@ -286,17 +286,16 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
   <h2><span class="accent">🎲</span> Seed repetition</h2>
   <p>Random-seed protocol: both stochastic estimators were re-run over ten seeds on the three
      IULUI sequences (KIMS <code>seed:=1001…1010</code>, Particle Smoothing
-     <code>seed:=101…110</code> at 1,000 and at the sample-matched 10,000 particles). Diamonds are
-     the default-seed runs (for KIMS and PS 1k these are the values in Tables I and III of the
-     paper), dots are the individual seeds, bars the mean ± std. Occupancy uses the paper's
+     <code>seed:=101…110</code> at the paper's 10,000 particles and at a reduced 1,000). Diamonds
+     are the default-seed runs, which for KIMS and PS 10k are the values in Tables I and III of the
+     paper, dots are the individual seeds, bars the mean ± std. Occupancy uses the paper's
      definition (gated to 0.25 m from the anchor plane).</p>
   <img src="assets/fig_seeds.png" alt="Seed-repetition statistics for KIMS and Particle Smoothing"
        style="width:100%;border-radius:12px;margin-top:6px">
   <p class="cap">KIMS stays below Particle Smoothing on every sequence at every seed. Its spread
      comes from transients at plane crossings rather than consolidation in the mirrored basin.
-     Particle Smoothing collapses at every seed, and the sample-matched 10,000-particle
-     configuration does not change that, so the collapse is structural under a reflection-symmetric
-     likelihood rather than a budget artifact.</p>
+     Particle Smoothing collapses at every seed at both particle counts, so the collapse is
+     structural under a reflection-symmetric likelihood rather than a budget artifact.</p>
 </section>
 
 <section id="baselines" class="wrap">
@@ -326,14 +325,15 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
      unit weights on Δp and Δv with a rotation weight of 6.0.</p>
   <h3 style="font-size:1.0rem;margin:14px 0 6px">Particle Smoothing</h3>
   <p>Bootstrap particle filter with adaptive (ESS-triggered) systematic resampling and fixed-lag
-     smoothing over the particle genealogy, 1,000 particles in the paper for real-time
-     feasibility. A sample-matched run with 10,000 particles (equal to the KIMS rollout budget)
-     is reported in the seed-repetition table below.</p>
+     smoothing over the particle genealogy. The paper uses <strong>10,000 particles</strong>, matching
+     the KIMS rollout budget; on the Jetson Orin NX this costs 1.46 ms per epoch, well inside the
+     10 ms UWB period, so the sample-matched setting is also the real-time-feasible one. The
+     reduced 1,000-particle configuration is kept as a budget comparison in the figure below.</p>
   <pre># reproduce every baseline number in the paper
 python3 scripts/run.py --method all --dataset all
 
-# Particle Smoothing, sample-matched (10,000 particles) and a different seed
-python3 scripts/run.py --method particle_smoothing --dataset iului -- num_particles:=10000 seed:=101
+# Particle Smoothing at the reduced 1,000-particle budget, or a different seed
+python3 scripts/run.py --method particle_smoothing --dataset iului -- num_particles:=1000 seed:=101
 
 # SW-MAP with the published window (20 on IULUI, 15 elsewhere) or any other
 python3 scripts/run.py --method sw_map --dataset iului -- window_size:=20

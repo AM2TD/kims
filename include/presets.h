@@ -72,9 +72,9 @@ inline SwMapPreset swMapPreset(const std::string& dataset) {
 }
 
 inline PsPreset psPreset(const std::string& dataset) {
-    if (dataset == "iului") return PsPreset{1000, 42, 0.3, 0.02, 0.05, 0.01, 0.7, 15};
-    if (dataset == "ntu")   return PsPreset{1000, 42, 0.5, 0.01, 0.02, 0.01, 0.5, 15};
-    return PsPreset{1000, 42, 0.3, 0.1, 0.1, 0.01, 0.5, 15};
+    if (dataset == "iului") return PsPreset{10000, 42, 0.3, 0.02, 0.05, 0.01, 0.7, 15};
+    if (dataset == "ntu")   return PsPreset{10000, 42, 0.5, 0.01, 0.02, 0.01, 0.5, 15};
+    return PsPreset{10000, 42, 0.3, 0.1, 0.1, 0.01, 0.5, 15};
 }
 
 }  // namespace kims
