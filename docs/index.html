@@ -286,16 +286,17 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
   <h2><span class="accent">🎲</span> Seed repetition</h2>
   <p>Random-seed protocol: both stochastic estimators were re-run over ten seeds on the three
      IULUI sequences (KIMS <code>seed:=1001…1010</code>, Particle Smoothing
-     <code>seed:=101…110</code> at the paper's 10,000 particles and at a reduced 1,000). Diamonds
-     are the default-seed runs, which for KIMS and PS 10k are the values in Tables I and III of the
-     paper, dots are the individual seeds, bars the mean ± std. Occupancy uses the paper's
-     definition (gated to 0.25 m from the anchor plane).</p>
+     <code>seed:=101…110</code>), both at the particle and rollout counts used in the paper.
+     Diamonds are the default-seed runs, which are the values in Tables I and III of the paper,
+     dots are the individual seeds, bars the mean ± std. Occupancy uses the paper's definition
+     (gated to 0.25 m from the anchor plane).</p>
   <img src="assets/fig_seeds.png" alt="Seed-repetition statistics for KIMS and Particle Smoothing"
        style="width:100%;border-radius:12px;margin-top:6px">
   <p class="cap">KIMS stays below Particle Smoothing on every sequence at every seed. Its spread
      comes from transients at plane crossings rather than consolidation in the mirrored basin.
-     Particle Smoothing collapses at every seed at both particle counts, so the collapse is
-     structural under a reflection-symmetric likelihood rather than a budget artifact.</p>
+     Particle Smoothing collapses at every seed, and it does so at the reduced 1,000-particle
+     budget as well, so the collapse is structural under a reflection-symmetric likelihood rather
+     than an artifact of the particle budget.</p>
 </section>
 
 <section id="baselines" class="wrap">
@@ -328,7 +329,8 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
      smoothing over the particle genealogy. The paper uses <strong>10,000 particles</strong>, matching
      the KIMS rollout budget; on the Jetson Orin NX this costs 1.46 ms per epoch, well inside the
      10 ms UWB period, so the sample-matched setting is also the real-time-feasible one. The
-     reduced 1,000-particle configuration is kept as a budget comparison in the figure below.</p>
+     reduced 1,000-particle configuration collapses in the same way, so the failure does not come
+     from the particle budget.</p>
   <pre># reproduce every baseline number in the paper
 python3 scripts/run.py --method all --dataset all
 
