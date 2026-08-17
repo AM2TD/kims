@@ -284,11 +284,12 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
 
 <section id="seeds" class="wrap">
   <h2><span class="accent">🎲</span> Seed repetition</h2>
-  <p>Both stochastic estimators were re-run over ten random seeds on the three IULUI sequences
-     (KIMS <code>seed:=1001…1010</code>, Particle Smoothing <code>seed:=101…110</code>). The paper
-     reports the shipped default seeds (1234 and 42), which are what the released code reproduces.
-     Values are mean ± std over seeds; occupancy and episodes use the paper's definitions (gated to
-     0.25 m from the plane, episodes of at least 0.2 s).</p>
+  <p>Random-seed protocol: both stochastic estimators were re-run over ten seeds on the three
+     IULUI sequences (KIMS <code>seed:=1001…1010</code>, Particle Smoothing
+     <code>seed:=101…110</code>), at 1,000 and at the sample-matched 10,000 particles for
+     Particle Smoothing. The paper reports the default seeds shipped with the code. Values are
+     mean ± std over seeds; occupancy and episodes use the paper's definitions (gated to 0.25 m
+     from the plane, episodes of at least 0.2 s).</p>
   <table>
     <tr><th>Sequence</th><th>Position RMSE [m]</th><th>Occupancy [%]</th><th>Episodes</th><th>Max episode [s]</th><th>Median episode [s]</th></tr>
     <tr><th colspan="6" style="text-align:left;color:var(--ink);padding-top:12px">KIMS</th></tr>
@@ -331,15 +332,29 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
         <td style="text-align:left">Oldest keyframe of the window (previously committed pose, velocity, and quaternion)</td>
         <td style="text-align:left">Held constant (fixed parameter blocks)</td></tr>
   </table>
-  <p class="cap">Window 20 keyframes on IULUI and 15 on MILUV / NTU VIRAL; quaternions on the
-     Eigen quaternion manifold; Levenberg-Marquardt with a dense Schur solver; the oldest state
-     is committed after each solve and the window slides by one keyframe.</p>
+  <p class="cap">Window of 15 keyframes on MILUV and NTU VIRAL and 20 on IULUI, where the longer
+     window gave SW-MAP its best accuracy on the validation sequence and is therefore the setting
+     reported. Quaternions live on the Eigen quaternion manifold, the problem is minimized by
+     Levenberg-Marquardt with a dense Schur solver, and after each solve the oldest state is
+     committed and the window slides by one keyframe. Covariances: UWB residuals are unweighted
+     inside the Tukey loss (cutoff 3.0 on the raw range residual in metres), and the IMU factor uses
+     unit weights on Δp and Δv with a rotation weight of 6.0.</p>
   <h3 style="font-size:1.0rem;margin:14px 0 6px">Particle Smoothing</h3>
   <p>Bootstrap particle filter with adaptive (ESS-triggered) systematic resampling and fixed-lag
      smoothing over the particle genealogy, 1,000 particles in the paper for real-time
      feasibility. A sample-matched run with 10,000 particles (equal to the KIMS rollout budget)
-     is reported on this page below and in the paper; run it yourself with
-     <code>python3 scripts/run.py --method particle_smoothing --dataset iului -- num_particles:=10000</code>.</p>
+     is reported in the seed-repetition table below.</p>
+  <pre># reproduce every baseline number in the paper
+python3 scripts/run.py --method all --dataset all
+
+# Particle Smoothing, sample-matched (10,000 particles) and a different seed
+python3 scripts/run.py --method particle_smoothing --dataset iului -- num_particles:=10000 seed:=101
+
+# SW-MAP with the published window (20 on IULUI, 15 elsewhere) or any other
+python3 scripts/run.py --method sw_map --dataset iului -- window_size:=20
+
+# KIMS with a different seed (default 1234 reproduces the paper)
+python3 scripts/run.py --method kims --dataset iului -- seed:=1001</pre>
 </section>
 
 <section id="paper" class="wrap">
