@@ -294,9 +294,9 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
        style="width:100%;border-radius:12px;margin-top:6px">
   <p class="cap">KIMS stays below Particle Smoothing on every sequence at every seed. Its spread
      comes from transients at plane crossings rather than consolidation in the mirrored basin.
-     Particle Smoothing collapses at every seed, and it does so at the reduced 1,000-particle
-     budget as well, so the collapse is structural under a reflection-symmetric likelihood rather
-     than an artifact of the particle budget.</p>
+     Particle Smoothing collapses at every seed even with the particle count matched to the KIMS
+     rollout budget, so the collapse is structural under a reflection-symmetric likelihood rather
+     than an artifact of the sample budget.</p>
 </section>
 
 <section id="baselines" class="wrap">
@@ -326,16 +326,14 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
      unit weights on Δp and Δv with a rotation weight of 6.0.</p>
   <h3 style="font-size:1.0rem;margin:14px 0 6px">Particle Smoothing</h3>
   <p>Bootstrap particle filter with adaptive (ESS-triggered) systematic resampling and fixed-lag
-     smoothing over the particle genealogy. The paper uses <strong>10,000 particles</strong>, matching
-     the KIMS rollout budget; on the Jetson Orin NX this costs 1.46 ms per epoch, well inside the
-     10 ms UWB period, so the sample-matched setting is also the real-time-feasible one. The
-     reduced 1,000-particle configuration collapses in the same way, so the failure does not come
-     from the particle budget.</p>
+     smoothing over the particle genealogy, with <strong>10,000 particles</strong> matching the KIMS
+     rollout budget. On the Jetson Orin NX this costs 1.46 ms per epoch, well inside the 10 ms UWB
+     period, so the sample-matched setting is also the real-time-feasible one.</p>
   <pre># reproduce every baseline number in the paper
 python3 scripts/run.py --method all --dataset all
 
-# Particle Smoothing at the reduced 1,000-particle budget, or a different seed
-python3 scripts/run.py --method particle_smoothing --dataset iului -- num_particles:=1000 seed:=101
+# Particle Smoothing with a different seed
+python3 scripts/run.py --method particle_smoothing --dataset iului -- seed:=101
 
 # SW-MAP with the published window (20 on IULUI, 15 elsewhere) or any other
 python3 scripts/run.py --method sw_map --dataset iului -- window_size:=20

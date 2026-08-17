@@ -126,8 +126,8 @@ python3 scripts/run.py --method kims --dataset ntu -- N:=3000 T:=10 gamma:=5.0
 > Both stochastic methods expose their random seed: `seed:=` for `kims` (default 1234, the
 > published runs) and for `particle_smoothing` (default 42), together with `num_particles:=`.
 > The seed-repetition statistics on the project page were produced by sweeping `seed:=1001..1010`
-> for KIMS and `seed:=101..110` for Particle Smoothing. Particle Smoothing defaults to 10,000
-> particles, matching the KIMS rollout budget; pass `num_particles:=1000` for the reduced budget.
+> for KIMS and `seed:=101..110` for Particle Smoothing, which uses 10,000 particles to match the
+> KIMS rollout budget (`num_particles:=` overrides it).
 
 ---
 
