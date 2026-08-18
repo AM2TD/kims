@@ -276,6 +276,18 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
     <tr><td class="best">10,000</td><td class="best">9.11</td><td class="best">8.49</td><td class="best">13.57</td><td class="best">15.67</td><td class="best">30.6</td><td class="best">18.85%</td><td class="best">0.14%</td></tr>
     <tr><td>16,384</td><td>12.97</td><td>12.23</td><td>16.00</td><td>17.98</td><td>43.1</td><td>100%</td><td>0.37%</td></tr>
   </table>
+  <p><strong>What "real time" means here.</strong> KIMS is a smoother, not a controller, so the
+     requirement is that it sustains the sensor rate rather than meeting a hard per-epoch deadline:
+     the mean solve time stays below the 10 ms UWB epoch, so the input queue does not grow, and an
+     occasional slow epoch is absorbed by the next window instead of dropping a measurement. The
+     &gt; 10 ms and &gt; 20 ms columns are given so that the tail can be judged, not because a solve
+     past one epoch is a failure. Reducing <em>N</em> from 10,000 to 8,192 trades a small amount of
+     accuracy for a much shorter tail, as the rows above show.</p>
+  <p><strong>Two latencies, not one.</strong> The times above are <em>computational</em> latency,
+     the cost of producing one solve. Separate from it is the <em>estimation</em> latency built into
+     fixed-lag smoothing: the committed state is the oldest one in the window, so it trails the
+     newest measurement by the horizon length. That delay is what buys the smoothing accuracy, and
+     a consumer that needs the newest pose reads the propagated head of the window instead.</p>
   <p class="cap">Timing files: <code>result/&lt;dataset&gt;/&lt;seq&gt;/kims_timing.txt</code>, one line
      per solve.</p>
 </section>
