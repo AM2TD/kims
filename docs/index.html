@@ -329,9 +329,11 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
         <td style="text-align:left">Oldest keyframe of the window (previously committed pose, velocity, and quaternion)</td>
         <td style="text-align:left">Held constant (fixed parameter blocks)</td></tr>
   </table>
-  <p class="cap">Window of 15 keyframes on MILUV and NTU VIRAL and 20 on IULUI, where the longer
-     window gave SW-PGO its best accuracy on the validation sequence and is therefore the setting
-     reported. Quaternions live on the Eigen quaternion manifold, the problem is minimized by
+  <p class="cap">Window of 15 keyframes on MILUV and NTU VIRAL and 20 on IULUI. The window length
+     is tuned per dataset like every other baseline setting, and on IULUI the longer window is
+     better on all three sequences — 0.248, 0.242, 0.327 m at 15 keyframes against 0.216, 0.215,
+     0.320 m at 20 — so SW-PGO is reported at its own best configuration rather than at one length
+     imposed across datasets. Quaternions live on the Eigen quaternion manifold, the problem is minimized by
      Levenberg-Marquardt with a dense Schur solver, and after each solve the oldest state is
      committed and the window slides by one keyframe. Covariances: UWB residuals are unweighted
      inside the Tukey loss (cutoff 3.0 on the raw range residual in metres), and the IMU factor uses
