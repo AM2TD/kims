@@ -276,11 +276,8 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
     <tr><td class="best">10,000</td><td class="best">9.11</td><td class="best">8.49</td><td class="best">13.57</td><td class="best">15.67</td><td class="best">30.6</td><td class="best">18.85%</td><td class="best">0.14%</td></tr>
     <tr><td>16,384</td><td>12.97</td><td>12.23</td><td>16.00</td><td>17.98</td><td>43.1</td><td>100%</td><td>0.37%</td></tr>
   </table>
-  <p class="cap">Two latencies should not be confused. The <em>computational</em> latency above is
-     the time to produce one solve. The <em>estimation</em> latency of a fixed-lag smoother is
-     structural: the committed state is <em>T</em> epochs behind the newest measurement (150 ms
-     at <em>T</em> = 15, 10 ms epochs); a controller that needs the current pose would read the
-     propagated window head instead. Timing files: <code>result/&lt;dataset&gt;/&lt;seq&gt;/kims_timing.txt</code>.</p>
+  <p class="cap">Timing files: <code>result/&lt;dataset&gt;/&lt;seq&gt;/kims_timing.txt</code>, one line
+     per solve.</p>
 </section>
 
 <section id="seeds" class="wrap">
