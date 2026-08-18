@@ -334,14 +334,9 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
   <pre># reproduce every baseline number in the paper
 python3 scripts/run.py --method all --dataset all
 
-# Particle Smoothing with a different seed
-python3 scripts/run.py --method particle_smoothing --dataset iului -- seed:=101
-
-# SW-MAP with the published window (20 on IULUI, 15 elsewhere) or any other
-python3 scripts/run.py --method sw_map --dataset iului -- window_size:=20
-
-# KIMS with a different seed (default 1234 reproduces the paper)
-python3 scripts/run.py --method kims --dataset iului -- seed:=1001</pre>
+# any single method or sequence
+python3 scripts/run.py --method particle_smoothing --dataset iului
+python3 scripts/run.py --method kims --dataset iului --sequence CircleSpin</pre>
 </section>
 
 <section id="paper" class="wrap">
