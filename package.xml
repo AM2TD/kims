@@ -5,7 +5,7 @@
   <description>
     KIMS: Kinematic-Constrained MPPI Smoothing for UWB-IMU 6-DoF Pose Estimation.
     Offline evaluation of KIMS and the EKF-RTS, UKF-RTS, Particle Smoothing and
-    SW-MAP baselines on MILUV, NTU VIRAL and IULUI, plus a real-time ROS node.
+    SW-PGO baselines on MILUV, NTU VIRAL and IULUI, plus a real-time ROS node.
     The offline tools read CSV and build without ROS.
   </description>
   <maintainer email="anonymous@anonymous.invalid">Anonymous</maintainer>

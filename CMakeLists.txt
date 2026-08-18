@@ -91,10 +91,10 @@ kims_add(kims               FALSE src/offline/kims_node.cu src/offline/kims_solv
 kims_add(ekf_rts            FALSE src/offline/ekf_rts.cpp)
 kims_add(ukf_rts            FALSE src/offline/ukf_rts.cpp)
 kims_add(particle_smoothing FALSE src/offline/particle_smoothing.cpp)
-kims_add(sw_map             TRUE  src/offline/sw_map.cpp)
-# IULUI solves a different SW-MAP problem: attitude on a quaternion manifold
+kims_add(sw_pgo             TRUE  src/offline/sw_pgo.cpp)
+# IULUI solves a different SW-PGO problem: attitude on a quaternion manifold
 # with a dynamic autodiff cost, so it keeps its own node.
-kims_add(sw_map_iului       TRUE  src/offline/sw_map_iului.cpp)
+kims_add(sw_pgo_iului       TRUE  src/offline/sw_pgo_iului.cpp)
 
 # ── Online: real-time node, built only when ROS is present ──────────────────
 if(catkin_FOUND)

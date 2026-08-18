@@ -17,13 +17,13 @@ COLORS = {
     "ukf_rts":            "#6F8A1D",
     "ekf_rts":            "#0D2B6E",
     "particle_smoothing": "#2272B4",
-    "sw_map":             "#41B3BA",
+    "sw_pgo":             "#41B3BA",
 }
 LABELS = {
     "kims": "KIMS", "ukf_rts": "UKF-RTS", "ekf_rts": "EKF-RTS",
-    "particle_smoothing": "Particle Smoothing", "sw_map": "SW-MAP",
+    "particle_smoothing": "Particle Smoothing", "sw_pgo": "SW-PGO",
 }
-DRAW_ORDER = ["sw_map", "particle_smoothing", "ukf_rts", "ekf_rts", "kims"]
+DRAW_ORDER = ["sw_pgo", "particle_smoothing", "ukf_rts", "ekf_rts", "kims"]
 GT_KW = dict(color="black", linewidth=1.1, linestyle="--", alpha=0.9, zorder=5)
 
 PDF_METADATA = {

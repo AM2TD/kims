@@ -315,7 +315,7 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
   <p>All baselines share the same measurements, extrinsics, robust loss, and cold start as
      KIMS, and were tuned once per dataset. The exact implementations are in
      <code>src/offline/</code>; the two that reviewers most often ask about are specified here.
-     SW-PGO is invoked as <code>--method sw_map</code> in the released scripts.</p>
+     SW-PGO is invoked as <code>--method sw_pgo</code> in the released scripts.</p>
   <h3 style="font-size:1.0rem;margin:14px 0 6px">SW-PGO (sliding-window pose-graph optimization)</h3>
   <table>
     <tr><th>Factor</th><th style="text-align:left">Residual</th><th style="text-align:left">Weighting</th></tr>

@@ -1,5 +1,5 @@
 DATASETS = ["iului", "miluv", "ntu"]
-METHODS = ["kims", "ekf_rts", "ukf_rts", "particle_smoothing", "sw_map"]
+METHODS = ["kims", "ekf_rts", "ukf_rts", "particle_smoothing", "sw_pgo"]
 
 IULUI = dict(
     sequences=["SquareBob", "SquareTurn", "CircleSpin"],

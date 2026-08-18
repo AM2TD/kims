@@ -91,7 +91,7 @@ python3 scripts/run.py --method all --dataset all
 
 | flag | choices |
 |---|---|
-| `--method` | `kims` · `ekf_rts` · `ukf_rts` · `particle_smoothing` · `sw_map` · `all` |
+| `--method` | `kims` · `ekf_rts` · `ukf_rts` · `particle_smoothing` · `sw_pgo` · `all` |
 | `--dataset` | `iului` · `miluv` · `ntu` · `all` |
 | `--sequence` | a sequence name · `all` |
 
@@ -170,7 +170,7 @@ nothing else — anchors, tag lever arms and tag ids are plain rosparams.
 kims/
 ├── include/            solver + IO headers · presets.h = every published setting
 ├── src/
-│   ├── offline/        kims, ekf_rts, ukf_rts, particle_smoothing, sw_map
+│   ├── offline/        kims, ekf_rts, ukf_rts, particle_smoothing, sw_pgo
 │   └── online/         kims_online ROS node
 ├── scripts/
 │   ├── run.py          runs any method on any dataset

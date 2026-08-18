@@ -156,7 +156,7 @@ static void rotToArray(const Eigen::Matrix3d& R, double* arr) {
 }
 
 template <int NT, int NA>
-static int runSwMap(const std::vector<ImuData>& imu_data,
+static int runSwPgo(const std::vector<ImuData>& imu_data,
                     const std::vector<UwbRange>& uwb_raw,
                     const std::vector<int>& tag_ids,
                     const std::vector<int>& anchor_ids,
@@ -166,7 +166,7 @@ static int runSwMap(const std::vector<ImuData>& imu_data,
                     bool z_down, const std::string& output_file) {
     const double init_x = init_p.x(), init_y = init_p.y(), init_z = init_p.z();
     std::ofstream ofs(output_file);
-    if (!ofs) { std::cerr << "[SW-MAP] Cannot open output: " << output_file << "\n"; return 1; }
+    if (!ofs) { std::cerr << "[SW-PGO] Cannot open output: " << output_file << "\n"; return 1; }
     ofs << "# time x y z qx qy qz qw\n";
     ofs << std::fixed; ofs.precision(9);
 
@@ -280,11 +280,11 @@ static int runSwMap(const std::vector<ImuData>& imu_data,
         std::ofstream tf(timing_file);
         tf << std::fixed; tf.precision(6);
         for (double ms : solve_times_vec) tf << ms << "\n";
-        printf("[SW-MAP] Timing: mean=%.3f ms  std=%.3f ms  max=%.3f ms  N=%zu  saved to %s\n",
+        printf("[SW-PGO] Timing: mean=%.3f ms  std=%.3f ms  max=%.3f ms  N=%zu  saved to %s\n",
                mean_ms, std_ms, max_ms, N, timing_file.c_str());
     }
 
-    std::cout << "[SW-MAP] Done. Solves=" << solve_count
+    std::cout << "[SW-PGO] Done. Solves=" << solve_count
               << "  output=" << output_file << "\n";
     return 0;
 }
@@ -296,7 +296,7 @@ int main(int argc, char** argv) {
 
     std::string data_dir    = getArg<std::string>(args, "data_dir", std::string(""));
     std::string anchor_file = getArg<std::string>(args, "anchor_file", std::string(""));
-    std::string output_file = getArg<std::string>(args, "output_file", std::string("sw_map_pose.txt"));
+    std::string output_file = getArg<std::string>(args, "output_file", std::string("sw_pgo_pose.txt"));
     std::string imu_file    = getArg<std::string>(args, "imu_file",
                                   data_dir + (is_ntu ? "/imu.csv" : "/imu_px4.csv"));
     std::string uwb_file    = getArg<std::string>(args, "uwb_file", data_dir + "/uwb_range.csv");
@@ -334,14 +334,14 @@ int main(int argc, char** argv) {
         Eigen::Matrix<double, 3, 3> anchors;
         for (int i = 0; i < 3; ++i)
             anchors.row(i) << h_anchor[3*i], h_anchor[3*i+1], h_anchor[3*i+2];
-        return runSwMap<4, 3>(imu_data, uwb_raw, tag_ids, anchor_ids, anchors, tag_off,
+        return runSwPgo<4, 3>(imu_data, uwb_raw, tag_ids, anchor_ids, anchors, tag_off,
                               win_size, Eigen::Vector3d(init_x, init_y, init_z),
                               true, output_file);
     }
     Eigen::Matrix<double, 6, 3> anchors;
     for (int i = 0; i < 6; ++i)
         anchors.row(i) << h_anchor[3*i], h_anchor[3*i+1], h_anchor[3*i+2];
-    return runSwMap<2, 6>(imu_data, uwb_raw, tag_ids, anchor_ids, anchors, tag_off,
+    return runSwPgo<2, 6>(imu_data, uwb_raw, tag_ids, anchor_ids, anchors, tag_off,
                           win_size, Eigen::Vector3d(init_x, init_y, init_z),
                           false, output_file);
 }

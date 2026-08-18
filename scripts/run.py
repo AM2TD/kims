@@ -18,8 +18,8 @@ PKG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 def find_binary(method, dataset):
-    if method == "sw_map" and dataset == "iului":
-        name = "sw_map_iului"
+    if method == "sw_pgo" and dataset == "iului":
+        name = "sw_pgo_iului"
     else:
         name = method
     cands = []

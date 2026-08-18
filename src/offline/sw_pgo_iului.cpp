@@ -226,7 +226,7 @@ int main(int argc, char** argv) {
     std::vector<ImuData>   imu_data;
     std::vector<UwbRange>  uwb_raw;
     std::string dir = getArg<std::string>(args, "data_dir", std::string(""));
-    if (dir.empty()) { std::cerr << "[SW-MAP] data_dir required\n"; return 1; }
+    if (dir.empty()) { std::cerr << "[SW-PGO] data_dir required\n"; return 1; }
     if (!loadImu(dir + "/imu.csv", imu_data)) return 1;
     if (!loadUwbRange(dir + "/uwb_range.csv", {tag0_id, tag1_id},
                       anchor_idx_all(num_anchors), uwb_raw)) return 1;

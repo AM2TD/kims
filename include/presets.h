@@ -25,7 +25,7 @@ struct KimsPreset {
 };
 
 struct EkfPreset { double std_acc, std_gyr, std_uwb; };
-struct SwMapPreset { int window_size; };
+struct SwPgoPreset { int window_size; };
 struct PsPreset {
     int    num_particles;
     int    seed;
@@ -66,9 +66,9 @@ inline EkfPreset ukfPreset(const std::string& dataset) {
     return EkfPreset{0.3, 0.01, 0.1};
 }
 
-inline SwMapPreset swMapPreset(const std::string& dataset) {
-    if (dataset == "iului") return SwMapPreset{20};
-    return SwMapPreset{15};
+inline SwPgoPreset swPgoPreset(const std::string& dataset) {
+    if (dataset == "iului") return SwPgoPreset{20};
+    return SwPgoPreset{15};
 }
 
 inline PsPreset psPreset(const std::string& dataset) {
