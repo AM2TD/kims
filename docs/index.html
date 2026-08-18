@@ -263,9 +263,10 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
   <h2><span class="accent">⏱</span> Solve-time distribution on the Jetson Orin NX</h2>
   <p>Per-solve wall-clock time of the KIMS GPU solver measured onboard a Jetson Orin NX over
      5,893 UWB epochs of an IULUI flight (10 ms epoch period, <em>T</em> = 15). The paper quotes
-     the mean at <em>N</em> = 10,000; the full distribution is below. Real time in the paper means
-     sustained throughput at the sensor rate: a solve that spills past one epoch is absorbed by
-     the next window rather than dropped.</p>
+     the mean at <em>N</em> = 10,000 and the full distribution is below. Real time here means
+     sustained throughput at the sensor rate rather than a hard per-epoch deadline: a fixed-lag
+     smoother queues the measurements of a slow epoch and absorbs them in the next window, so the
+     fractions above 10 and 20 ms are given for reference, not as failures.</p>
   <table>
     <tr><th>Rollouts <em>N</em></th><th>mean [ms]</th><th>median</th><th>p95</th><th>p99</th><th>max</th><th>&gt; 10 ms</th><th>&gt; 20 ms</th></tr>
     <tr><td>256</td><td>1.54</td><td>1.14</td><td>3.75</td><td>4.99</td><td>16.4</td><td>0.03%</td><td>0%</td></tr>
