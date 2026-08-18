@@ -196,7 +196,7 @@
   <p>Position RMSE [m] against every baseline, tuned once per dataset. Orientation and the
      mirrored-occupancy metrics are in the paper.</p>
   <table>
-    <tr><th>Sequence</th><th>KIMS</th><th>UKF-RTS</th><th>EKF-RTS</th><th>Particle&nbsp;Sm.<br><span style="font-weight:400;font-size:.85em">10,000 particles</span></th><th>SW-MAP</th></tr>
+    <tr><th>Sequence</th><th>KIMS</th><th>UKF-RTS</th><th>EKF-RTS</th><th>Particle&nbsp;Sm.<br><span style="font-weight:400;font-size:.85em">10,000 particles</span></th><th>SW-PGO</th></tr>
     <tr><td>IULUI · SquareBob</td><td class="best">0.139</td><td>0.778</td><td>0.776</td><td>0.260</td><td>0.216</td></tr>
     <tr><td>IULUI · SquareTurn</td><td class="best">0.159</td><td>0.170</td><td>0.168</td><td>0.905</td><td>0.215</td></tr>
     <tr><td>IULUI · CircleSpin</td><td class="best">0.191</td><td>0.561</td><td>0.551</td><td>0.416</td><td>0.320</td></tr>
@@ -314,8 +314,9 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
   <h2><span class="accent">⚖</span> Baseline implementations</h2>
   <p>All baselines share the same measurements, extrinsics, robust loss, and cold start as
      KIMS, and were tuned once per dataset. The exact implementations are in
-     <code>src/offline/</code>; the two that reviewers most often ask about are specified here.</p>
-  <h3 style="font-size:1.0rem;margin:14px 0 6px">SW-MAP (sliding-window MAP)</h3>
+     <code>src/offline/</code>; the two that reviewers most often ask about are specified here.
+     SW-PGO is invoked as <code>--method sw_map</code> in the released scripts.</p>
+  <h3 style="font-size:1.0rem;margin:14px 0 6px">SW-PGO (sliding-window pose-graph optimization)</h3>
   <table>
     <tr><th>Factor</th><th style="text-align:left">Residual</th><th style="text-align:left">Weighting</th></tr>
     <tr><td>UWB range</td>
@@ -329,7 +330,7 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
         <td style="text-align:left">Held constant (fixed parameter blocks)</td></tr>
   </table>
   <p class="cap">Window of 15 keyframes on MILUV and NTU VIRAL and 20 on IULUI, where the longer
-     window gave SW-MAP its best accuracy on the validation sequence and is therefore the setting
+     window gave SW-PGO its best accuracy on the validation sequence and is therefore the setting
      reported. Quaternions live on the Eigen quaternion manifold, the problem is minimized by
      Levenberg-Marquardt with a dense Schur solver, and after each solve the oldest state is
      committed and the window slides by one keyframe. Covariances: UWB residuals are unweighted
