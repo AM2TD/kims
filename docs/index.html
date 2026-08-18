@@ -283,17 +283,19 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
 <section id="seeds" class="wrap">
   <h2><span class="accent">🎲</span> Seed repetition</h2>
   <p>Both stochastic estimators were re-run with ten different random seeds on the three IULUI
-     sequences, at the sample counts used in the paper, <em>N</em> = 10,000 rollouts for KIMS and
-     10,000 particles for Particle Smoothing. Diamonds are the runs reported in Tables I and III of
-     the paper, dots are the individual seeds, bars the mean ± std. Occupancy uses the paper's
-     definition (gated to 0.25 m from the anchor plane).</p>
+     sequences. KIMS uses <em>N</em> = 10,000 rollouts, and Particle Smoothing is shown at both the
+     10,000 particles reported in the paper, which match that rollout budget, and the reduced 1,000
+     of the original configuration. Diamonds are the runs reported in Tables I and III of the paper,
+     dots are the individual seeds, bars the mean ± std. Occupancy uses the paper's definition
+     (gated to 0.25 m from the anchor plane).</p>
   <img src="assets/fig_seeds.png" alt="Seed-repetition statistics for KIMS and Particle Smoothing"
        style="width:100%;border-radius:12px;margin-top:6px">
   <p class="cap">KIMS stays below Particle Smoothing on every sequence at every seed. Its spread
      comes from transients at plane crossings rather than consolidation in the mirrored basin.
-     Particle Smoothing collapses at every seed even with the particle count matched to the KIMS
-     rollout budget, so the collapse is structural under a reflection-symmetric likelihood rather
-     than an artifact of the sample budget.</p>
+     Particle Smoothing collapses at every seed at both particle counts, and raising the budget
+     tenfold to match the KIMS rollouts moves occupancy only from 19.8, 72.1, and 22.3&nbsp;% to
+     17.9, 70.4, and 17.2&nbsp;%, so the collapse is structural under a reflection-symmetric
+     likelihood rather than an artifact of the sample budget.</p>
 </section>
 
 <section id="baselines" class="wrap">
@@ -325,7 +327,9 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
   <p>Bootstrap particle filter with adaptive (ESS-triggered) systematic resampling and fixed-lag
      smoothing over the particle genealogy, with <strong>10,000 particles</strong> matching the KIMS
      rollout budget. On the Jetson Orin NX this costs 1.46 ms per epoch, well inside the 10 ms UWB
-     period, so the sample-matched setting is also the real-time-feasible one.</p>
+     period, so the sample-matched setting is also the real-time-feasible one. The original
+     1,000-particle configuration is evaluated alongside it in the seed figure below; run it with
+     <code>num_particles:=1000</code>.</p>
   <pre># reproduce every baseline number in the paper
 python3 scripts/run.py --method all --dataset all
 
