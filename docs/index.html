@@ -285,13 +285,11 @@ roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
 
 <section id="seeds" class="wrap">
   <h2><span class="accent">🎲</span> Seed repetition</h2>
-  <p>Random-seed protocol: both stochastic estimators were re-run over ten seeds on the three
-     IULUI sequences (KIMS <code>seed:=1001…1010</code>, Particle Smoothing
-     <code>seed:=101…110</code>) at the sample counts used in the paper, <em>N</em> = 10,000
-     rollouts for KIMS and 10,000 particles for Particle Smoothing. Diamonds are the default-seed
-     runs, which are the values in Tables I and III of the paper, dots are the individual seeds,
-     bars the mean ± std. Occupancy uses the paper's definition (gated to 0.25 m from the anchor
-     plane).</p>
+  <p>Both stochastic estimators were re-run with ten different random seeds on the three IULUI
+     sequences, at the sample counts used in the paper, <em>N</em> = 10,000 rollouts for KIMS and
+     10,000 particles for Particle Smoothing. Diamonds are the runs reported in Tables I and III of
+     the paper, dots are the individual seeds, bars the mean ± std. Occupancy uses the paper's
+     definition (gated to 0.25 m from the anchor plane).</p>
   <img src="assets/fig_seeds.png" alt="Seed-repetition statistics for KIMS and Particle Smoothing"
        style="width:100%;border-radius:12px;margin-top:6px">
   <p class="cap">KIMS stays below Particle Smoothing on every sequence at every seed. Its spread
