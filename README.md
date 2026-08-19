@@ -1,4 +1,4 @@
-# KIMS: Kinematic-Constrained MPPI Smoothing for UWB-IMU 6-DoF Pose Estimation
+# KIMS: Kinematics-Constrained MPPI Smoothing for UWB-IMU 6-DoF Pose Estimation
 
 [**🌐 Project Page**](https://am2td.github.io/kims/) | [**📄 Paper**](https://am2td.github.io/kims/#paper) | [**🎬 Demo**](https://am2td.github.io/kims/#demo)
 
