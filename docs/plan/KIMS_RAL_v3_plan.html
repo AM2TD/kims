@@ -1,0 +1,197 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><title>KIMS RA-L 2차 리뷰 대응 전략 (v3)</title>
+<style>
+@page { size: A4; margin: 18mm 16mm; }
+body { font-family: "Noto Sans CJK KR", "Noto Sans CJK HK", "Baekmuk Dotum", sans-serif; font-size: 10.5pt; line-height: 1.45; color: #111; }
+h1 { font-size: 17pt; margin: 0 0 4px 0; } .sub { color: #555; margin-bottom: 14px; }
+h2 { font-size: 13pt; margin: 18px 0 6px 0; border-bottom: 1px solid #999; padding-bottom: 2px; page-break-after: avoid; }
+p { margin: 5px 0; } ol, ul { margin: 4px 0 6px 0; padding-left: 20px; } li { margin: 2px 0; }
+table { border-collapse: collapse; width: 100%; margin: 6px 0 10px 0; font-size: 9.3pt; page-break-inside: auto; }
+th, td { border: 1px solid #888; padding: 4px 6px; vertical-align: top; text-align: left; }
+th { background: #e8eef7; } tr { page-break-inside: avoid; }
+.w1 { width: 7%; } .w2 { width: 46%; }
+.note { color: #444; font-size: 9.5pt; }
+</style></head><body>
+<h1>KIMS RA-L 2차 리뷰 대응 전략 (v3)</h1>
+<div class="sub">2026-10-15 · 작성: 김 · 지도교수·공저자 검토용</div>
+<div style="border:1px solid #888; background:#f4f6fa; padding:8px 12px; margin:8px 0 14px 0;">
+<b>한눈에 보기</b>
+<ul style="margin:4px 0 2px 0;">
+<li><b>주장을 바꿉니다.</b> "flip을 막는다"를 버리고, "IMU 입력을 샘플링하는 MPPI 기반 fixed-lag smoother"로 씁니다. 4개 데이터셋 104개 시퀀스에서 발산 0.</li>
+<li><b>근거 네 가지.</b> ① 같은 목적함수를 LM으로 풀면 더 낫지 않음(104개 중 LM 우세 0, KIMS 우세 14). ② 공개 smoother SFUISE는 10 s 창이 있어야 동작(창을 2–3 s로 맞추면 33/33 발산). ③ 데이터셋 논문의 필터(높이센서 EKF, ESKF)보다 낮음(13/13, 78/79). ④ coplanar 앵커에서 근소 우위, 비행 중 자세도 더 정확.</li>
+<li><b>약점도 적습니다.</b> UTIL에서 SFUISE와 동률(xy는 열세), mirror가 걸리는 NTU 시퀀스는 설정에 민감, 창 길이·NTU head_filt는 데이터셋별로 다름.</li>
+<li><b>결정 부탁.</b> SquareBob 처리, 알고리즘 변경 설명 방식, 응답서 첫 쪽 프레이밍(마지막 절).</li>
+<li><b>일정.</b> 10/15 실험 12개 항목 완료 → 10/28까지 본문 v3·응답서·보충자료.</li>
+</ul></div>
+
+<h2>요약: 무엇이 바뀌었고, 무엇을 버리고 무엇으로 가는가</h2>
+<p>v2 심사(R3 major, R4 major, R5 minor) 이후 알고리즘, 평가, 주장을 모두 바꿨고, flip 회피 주장과 MPPI 최적성 주장을 버리고 "입력공간 샘플링 fixed-lag smoother(MPPI 기반) + 외부 기준선 + matched LM 비교"로 v3를 쓰려 합니다. 이 방향이 맞는지 검토 부탁드립니다. 특히 마지막 절의 결정 세 가지(SquareBob 처리, 알고리즘 변경 설명, 응답서 프레이밍)에 의견 부탁드립니다.</p>
+<p><b>v2 이후 대체적으로 바뀐 것</b></p>
+<ol>
+<li><b>알고리즘.</b> MPPI의 "샘플 뽑기 → 비용으로 가중 → 가중 평균" 구조는 그대로입니다. 바꾼 것은 셋입니다. (i) 샘플을 뽑는 분포를 고정값 대신 이전 창의 결과(평균·공분산)에 맞춥니다. (ii) 유효 샘플이 너무 적으면 가중치를 완만하게 해 몇 번 더 뽑습니다(tempering). (iii) IMU 입력 보정을 스텝마다 두지 않고 cosine basis 4개의 계수로 표현합니다(총 33차원). 계산은 epoch당 4–9 ms로 각 데이터셋의 UWB 주기(10–20 ms) 안이고, 출력은 창 길이(MILUV 3 s, 나머지 2 s)만큼 늦게 확정됩니다.</li>
+<li><b>평가와 기준선.</b> 3개 데이터셋 15개 시퀀스에서 4개 데이터셋 104개(MILUV 13, NTU VIRAL 9, UTIL 79, IULUI 3: SquareTurn, CircleSpin, non-coplanar AC3)로 늘렸습니다. 자체 구현 기준선(EKF/UKF-RTS, PS, SW-PGO) 대신 공개 SFUISE와 데이터셋 논문의 필터 값(MILUV EKF+높이센서 Table 10, UTIL ESKF Table 4)을 씁니다. 채점도 고쳤습니다: MILUV constellation 2 앵커 순서(devkit issue #56), 원 mocap GT, NTU는 Leica 프리즘 4-DoF.</li>
+<li><b>새 근거.</b> (a) matched LM: 같은 목적함수·창·prior·rollout에서 최적화(LM)로 풀면 104개 중 LM이 나은 시퀀스는 없고 KIMS가 14개에서 낫습니다. 차이는 전부 앵커 평면 근처, 즉 답이 둘로 갈리는 구간에서 납니다. (b) SFUISE의 창을 KIMS와 같은 2–3 s로 줄이면 33/33 발산합니다. 게이트를 넓혀도 MILUV에서 7–13배 나쁩니다. (c) 반대로 KIMS의 창을 10 s로 늘려도 eee_01은 나아지지 않습니다. (d) R3가 직접 돌린 RONet(eee_01 0.402, eee_02 0.397)보다 KIMS가 낮습니다(0.204 / 0.367).</li>
+</ol>
+<p><b>알고리즘 보충: cosine basis와 tempering</b></p>
+<ul>
+<li><b>cosine basis를 쓰는 이유.</b> 창 안의 입력 보정을 스텝마다 두면 229×6 = 1,374차원이라 8,192개 샘플로는 ESS가 한 자릿수로 무너집니다. 가속도 보정은 두 번 적분되어 위치가 되므로 고주파 성분은 궤적을 거의 움직이지 못하고(스텝별 독립 섭동은 서로 상쇄), 궤적을 움직이는 성분은 저주파 몇 개뿐입니다. 그래서 창 위의 직교 코사인 함수(DCT) 4개의 계수로 표현합니다(채널 6개 × 4 + 창 시작 상태 9 = 33차원). 모드 0은 창 전체의 상수(바이어스 역할), 모드 1–3은 느린 변화입니다. 직교라 prior가 대각이고, 33차원 가우시안을 맞추는 데 유효 샘플 132개면 됩니다. K = 8도 K = 4와 같았습니다(UTIL 3개 비행, 0.100 대 0.101 m).</li>
+<li><b>tempering 절차.</b> 가중치를 w<sub>i</sub> ∝ exp(−β·비용<sub>i</sub>) × (prior/proposal 분포), β ∈ (0, 1]로 둡니다. (1) 첫 패스의 ESS = 1/Σw<sub>i</sub>²가 200(= 0.0244 N) 이상이면 끝. (2) 아니면 ESS(β) ≥ 132가 되는 가장 큰 β를 이분 탐색으로 찾고, 그 가중치로 가우시안(평균·공분산 × 1.2)을 맞춰 N개를 다시 뽑아 rollout합니다. (3) β를 올리며(목표 ESS = max(현재의 절반, 132)) 반복하고, β = 1에서 ESS ≥ 410(= 0.05 N)이면 끝. MILUV는 solve당 평균 1.9패스, NTU·UTIL은 거의 1패스입니다. SMC 샘플러의 adaptive tempering(Del Moral 외 2006; Jasra 외 2011)과 같은 절차라 그 이름으로 인용합니다.</li>
+</ul>
+<p><b>결과 (3D RMSE 중앙값, m)</b></p>
+<table><tr><th>데이터셋 (시퀀스 수)</th><th>KIMS</th><th>SFUISE</th><th>데이터셋 논문 필터</th><th>KIMS가 낮은 시퀀스</th></tr>
+<tr><td>MILUV (13)</td><td><b>0.135</b></td><td>0.704 (3 발산)</td><td>0.258 (EKF + 높이센서)</td><td>SFUISE 13/13, 필터 13/13</td></tr>
+<tr><td>NTU VIRAL (9)</td><td><b>0.435</b></td><td>2.537 (2 발산)</td><td>–</td><td>SFUISE 6/9</td></tr>
+<tr><td>UTIL (79)</td><td>0.187</td><td><b>0.184</b> (5 발산)</td><td>0.220 (ESKF)</td><td>SFUISE 33/79, 필터 78/79</td></tr>
+<tr><td>IULUI (3)</td><td><b>0.120</b></td><td>0.235</td><td>–</td><td>SFUISE 2/3</td></tr>
+</table>
+<p class="note">KIMS 발산 0/104. 자세 RMSE(MILUV / IULUI): KIMS 6.9° / 4.0°, SFUISE 10.9° / 14.3°, MILUV EKF+높이 8.7°. 발산 = RMSE 100 m 초과, 중앙값에 포함.</p>
+<p><b>SFUISE를 기준선으로 택한 이유.</b> 공개 코드가 있는 유일한 IMU+UWB 전용 smoother(RA-L 2023, continuous-time spline)이고, 저자들이 UTIL에서 직접 평가해 같은 데이터로 우리 실행을 검증할 수 있으며, trajectory continuity로 거리 정보를 규제하는 방식의 대표라 R3-2가 든 선행연구 계열을 대신합니다. 실시간이고 학습·카메라를 쓰지 않습니다. 설정은 저자 공개값을 쓰고, residual gate 두 값(0.3 / 1.5 m) 중 데이터셋마다 나은 쪽을 택해 기준선에 유리하게 했습니다. 데이터셋 논문의 필터 값은 데이터셋 저자가 튜닝한 둘째 기준선입니다.</p>
+<p><b>버리는 것과 대신 가는 것</b></p>
+<table><tr><th style="width:42%">버리는 것</th><th>대신 가는 것</th></tr>
+<tr><td>flip 회피, basin confinement, "degenerate observability" 주장</td><td>coplanar 앵커에서 근소 우위(13개 coplanar 비행 중 9개 KIMS 낮음)와 발산 0/104를 강건성 근거로 서술. "general"이라는 단어는 쓰지 않음</td></tr>
+<tr><td>표준 MPPI 유도(III-A)의 조건 아래 식 (9)–(10)이 최적해라는 주장, Σ<sub>u</sub> 분리·Tukey를 제어 비용으로 설명하는 서술</td><td>MPPI는 이름과 샘플링–가중–평균 구조를 그대로 두고 "MPPI 기반"으로 씀. λ = 1에서 MPPI의 최적 분포가 창의 posterior와 같다는 사실을 쓰고, 표준 MPPI와 다른 세 가지(proposal 분포를 이전 창 결과에 맞춤, proposal 분포와 prior가 다를 때의 importance weight 보정, tempering)를 한 문단으로 명시. 측정 모델(Tukey, LOS/NLOS 혼합)은 우도. η 포함 모든 기호 정의</td></tr>
+<tr><td>1/κ(H) degeneracy 지표, III-C 스케일링 논증</td><td>데이터셋별 앵커 기하 표(앵커 수·높이 분포·태그 수·초당 거리값·ToA/TDOA)만 기술</td></tr>
+<tr><td>SW-PGO 식(12), particle smoother, EKF/UKF-RTS 기준선</td><td>SFUISE + 데이터셋 논문 필터. particle smoother와의 차이는 본문에 세 줄로: 입자가 창 전체의 입력 보정 궤적, 리샘플링 계보 없음(매 epoch 새 제안), 창 시작 가우시안 이월</td></tr>
+<tr><td>"왜 샘플링인가"의 직관 설명</td><td>matched LM 비교 + 명제(unimodal이면 같고, bimodal이면 라플라스 이월이 가벼운 branch에 고착). LM을 쓸 이유가 없음을 결과로 보임</td></tr>
+<tr><td>SquareBob</td><td>AC3(앵커 높이 0.24–2.20 m 분포) 추가. SquareBob 처리는 결정 필요(마지막 절)</td></tr>
+<tr><td>Jetson Orin NX 9.1 ms</td><td>데스크톱 GPU 수치만 보고, Jetson은 재측정 후 추가</td></tr>
+</table>
+
+<h2>Reviewer 3 (major: 범위·신규성·matched 기준선)</h2>
+<p>R3의 핵심 요구 두 가지(주장 축소, 같은 변수·같은 운동학·다른 솔버 비교)는 이미 준비된 근거로 답할 수 있습니다. 남는 것은 방법 절 재작성과 튜닝 공개입니다.</p>
+<table><tr><th class="w1">#</th><th class="w2">지적 내용</th><th>진행할 내용</th></tr>
+<tr><td>3-1</td><td>"degenerate observability"의 수학적 정의가 없고 범위가 너무 넓다. 희소·시변 앵커(MCD)는 다른 문제. 시퀀스별 앵커 가용성을 보고하거나 주장을 축소하라</td><td>degeneracy·observability 주장을 제거한다. 적용 범위를 "측량된 다중 앵커 UWB(ToA/TDOA, 태그 1–4개) + IMU, 카메라·학습 없음"으로 명시하고, 시퀀스별 앵커 수·초당 거리값·태그 수 표를 넣는다(완료, anchor_table.txt). 희소 앵커는 미평가 한계로 한 문장</td></tr>
+<tr><td>3-2</td><td>trajectory continuity으로 거리 정보를 규제하는 선행연구(Fang, Wang)가 있다. 같은 U<sub>k</sub>, 같은 hard kinematic propagation를 GN/LM/SQP로 푸는 direct-shooting 기준선이 없으면 기여가 파라미터화인지 MPPI인지 알 수 없다</td><td>matched LM 비교를 본문 ablation으로 넣는다(104개: LM이 나은 시퀀스 0, KIMS가 나은 14, 나머지 1 cm 안). 차이가 나는 곳이 모두 posterior가 bimodal인 구간임을 분해로 보이고, 메커니즘(모멘트 맞춤 이월 대 라플라스 이월)을 명제로 쓴다. Fang, Wang은 관련 연구에 추가. 스플라인 기반 SFUISE가 trajectory continuity 기준선 역할</td></tr>
+<tr><td>3-3</td><td>모호성을 푸는 게 아니라 가지를 유지할 뿐이다. 더 단순한 연속성·제약 그래프 방법으로도 될 텐데 왜 이 정식화가 필요한가. 제목·초록·서론에서 한계를 전면에</td><td>flip 주장 자체를 철회한다. "왜 필요한가"는 LM 비교(같은 목적함수의 최적화가 더 나쁘고 빠르지도 않음)와 SFUISE 창 실험(continuity 기반 smoother는 10 s 창이 있어야 동작)으로 답한다</td></tr>
+<tr><td>3-4</td><td>가우시안은 unbounded라 "bounded sampling"이 아니고, 확률적 조건 없이 confinement를 보증할 수 없다. Σ 37 m/s²는 너무 크다</td><td>해당 문장과 III-C를 삭제한다. 최종 설정은 basis 계수에 가우시안 prior(q_acc 0.014–0.18)를 두는 것이라 큰 Σ도 없다</td></tr>
+<tr><td>3-5</td><td>구현이 MPPI 유도와 다르다(Σ<sub>u</sub> 분리, Tukey). 이론적 MPPI와 경험적 중요도 샘플링을 구분하라. η 미정의</td><td>"표준 MPPI 유도에 따라 최적 보정을 얻는다"는 문장을 빼고, λ = 1에서 MPPI의 최적 분포 = 창 posterior임을 쓴 뒤 표준 MPPI와의 차이 셋(proposal 분포, importance weight 보정, tempering)을 명시한다. 가중치 = posterior/proposal 분포 비, tempering은 ESS 기준. 모든 기호 정의</td></tr>
+<tr><td>3-6</td><td>SW-PGO 식(12)가 SO(3)에서 수학적으로 틀렸고 실제 구현(preintegration, Ceres)과 다르다</td><td>SW-PGO와 식(12)를 본문에서 낸다. "같은 목적함수, 다른 솔버" 논거는 LM 비교가 대체</td></tr>
+<tr><td>3-7</td><td>1/κ(H<sub>k</sub>)는 순간 위치 감도일 뿐 다중 태그·시간 결합 시스템의 degeneracy를 보이지 못한다. FIM 분석을 하거나 주장을 좁혀라</td><td>1/κ 표와 "degenerate throughout" 문장을 삭제하고, 앵커 기하는 기술 통계(앵커 높이 분포)로만 쓴다</td></tr>
+<tr><td>3-8</td><td>Tukey(KIMS, SW-PGO) 대 가우시안(나머지) 혼동, 검증 시퀀스 미공개, 데이터셋별 Σ 차이(3 / 37 / 1.2–9 m/s²), 파라미터 parameter-transfer 실험</td><td>새 기준선은 각자의 게이트(SFUISE 0.3 m, devkit 5σ)를 쓴다. 설정 표를 공개: 공통(N 8192, K 4, ESS 임계, 창 규칙, dc_acc 0.1), 데이터셋 유래(IMU 잡음 밀도, 거리 잡음·게이트), 튜닝값(q_acc 3개). MILUV 혼합 우도는 데이터셋의 캘리브레이션 비행으로 맞춘 것임을 명시. parameter-transfer 실험(한 설정으로 4개 데이터셋) 추가(실행 중). N 2048–16384에서 평평, 시드 간 ≤ 2 mm 제시</td></tr>
+<tr><td>3-9</td><td>처리량과 지연을 구분하라. 점 추정치 이월은 arrival cost가 아니다</td><td>fixed-lag smoother로 명시: 출력 지연 2–3 s, 지연 0 출력 정확도(MILUV 0.212, NTU 0.456, UTIL 0.204) 보고, epoch당 계산 시간은 별도 표. 최종 알고리즘은 평균·공분산을 넘기므로 arrival cost가 맞음. Jetson 수치는 삭제</td></tr>
+<tr><td>RONet</td><td>리뷰어가 직접 돌린 RONet이 eee_01 0.402, eee_02 0.397로 v2의 KIMS(0.743, 1.636)보다 낫다</td><td>최종 KIMS는 0.204 / 0.367로 그 값보다 낮다(채점 방식 차이는 단서). RONet은 GT로 학습하는 거리 전용 방법이라 관련 연구에서만 다루고 표에는 넣지 않는다</td></tr>
+</table>
+
+<h2>Reviewer 4 (major: 메커니즘 분리·튜닝)</h2>
+<p>R4의 네 가지 지적은 모두 "개선이 MPPI 때문인가, 제한된 rollout 분포 때문인가"로 모이고, matched LM이 그 답입니다.</p>
+<table><tr><th class="w1">#</th><th class="w2">지적 내용</th><th>진행할 내용</th></tr>
+<tr><td>4-1</td><td>mirror 전이 억제가 kinematic constraint 때문인지, 유한 rollout 분포가 멀리 탐색하지 못해서인지 구분되지 않는다. 창·공분산을 조금만 바꿔도 mirror 점유율이 커진다</td><td>LM은 같은 파라미터화·같은 prior·같은 지지집합을 가지므로, KIMS와의 차이는 탐색 범위가 아니라 추론 방식(posterior 질량 이월)에서 온다고 답한다. mirror 점유율 민감도는 보고하지 않고(주장 철회), RMSE의 N·시드·창 민감도만 보고</td></tr>
+<tr><td>4-2</td><td>같은 입력 보정 변수와 hard kinematic propagation를 통상 최적화기나 다른 샘플링법으로 푸는 matched 기준선이 없다</td><td>matched LM(104개)을 본문에. unimodal 구간 동률, bimodal 구간에서만 KIMS 우위, 비용 1.4배. 예: IULUI SquareTurn 0.120 대 0.548, MILUV random3_0 0.165 대 0.682</td></tr>
+<tr><td>4-3</td><td>데이터셋별 튜닝 의존이 크다. 탐색 공분산이 앵커 기하에 의존한다고 인정했다</td><td>최종 설정은 알고리즘 파라미터가 공통이고 데이터셋별로 다른 것은 센서 잡음·창 길이·q_acc뿐임을 표로 보이고, parameter-transfer 실험으로 물리치를 쓴다. 탐색 공분산이 앵커 기하에 의존한다는 문장은 삭제(최종 설계에서는 사실이 아님)</td></tr>
+<tr><td>4-4</td><td>식별이 아니라 유지다. 초기화 실험이 한계를 확인한다. 경험적 억제로만 써라</td><td>flip 관련 주장을 모두 철회하므로 해소. 응답서에 "축소가 아니라 철회"임과 그 이유(mirror branch는 측정에 없는 정보로 결정됨; NTU eee_03, nya_02에서 KIMS도 실패)를 명시</td></tr>
+<tr><td>4-5</td><td>짝 맞춘 hard-kinematics 기준선으로 메커니즘을 분리하고, 기여를 정확히 한정하라</td><td>4-2와 같음. 기여 문장은 "입력공간 파라미터화 + MPPI형 샘플링 추론, coplanar 앵커에서 같은 목적함수의 최적화보다 나음"까지</td></tr>
+</table>
+
+<h2>Reviewer 5 (minor)</h2>
+<p>R5는 수용 쪽이고, 세 가지 중 그림 하나만 새로 만들면 됩니다.</p>
+<table><tr><th class="w1">#</th><th class="w2">지적 내용</th><th>진행할 내용</th></tr>
+<tr><td>5-1</td><td>particle smoother가 bootstrap 고정 지연 변형임을 명시. 간단한 사전정보(한쪽 편, 높이 제한)가 언제 적용되고 IULUI·NTU에 왜 안 맞는지 문단</td><td>particle smoother는 본 표에서 빠지므로 관련 연구에서 한 문장. 사전정보 문단은 coplanar 앵커 논의에 넣는다: 높이센서를 쓰는 MILUV 논문 EKF보다 KIMS가 13/13 낮고, IULUI와 MILUV constellation 1은 정상 비행 중 평면을 지나므로 side-of-plane prior는 맞는 해를 버린다</td></tr>
+<tr><td>5-2</td><td>앵커와 앵커 평면을 포함한 3D 궤적 overlay 한 장, 없으면 보충 그림·영상을 정확히 가리킬 것</td><td>데이터셋별 한 비행의 3D overlay(GT, KIMS, SFUISE, 앵커) 그림을 본문에 한 장. 영상은 이번에는 만들지 않고 저장소의 그림을 가리킨다</td></tr>
+<tr><td>5-3</td><td>III-C의 "plane crossing에 많은 섭동이 동시에 정렬되어야 한다"는 오독된다</td><td>III-C를 삭제하므로 해소</td></tr>
+</table>
+
+<h2>실험·분석 항목</h2>
+<p>12개 항목이 모두 끝났습니다(10/15). 남은 실험은 Jetson 재측정(P3)뿐입니다.</p>
+<table><tr><th class="w1">#</th><th>실험·분석 항목</th><th style="width:16%">대응 리뷰</th><th style="width:9%">재실험</th><th style="width:10%">비용</th><th style="width:16%">상태</th></tr>
+<tr><td>E1</td><td>matched LM 비교(104개) + mirror 구간 분해 + 메커니즘 명제</td><td>R3-2, 3-3, R4-1, 4-2, 4-5</td><td>불필요</td><td>–</td><td>완료</td></tr>
+<tr><td>E2</td><td>SFUISE 창 맞춤(33개) + 게이트 대조(6개)</td><td>R3-3, R3-9</td><td>불필요</td><td>–</td><td>완료</td></tr>
+<tr><td>E3</td><td>설정 공개표 + parameter-transfer 실험(한 설정으로 4개 데이터셋)</td><td>R3-8, R4-3</td><td>필요</td><td>중 (GPU 2 h)</td><td>완료 (transfer_table.txt): UTIL은 공통값이 더 좋음(0.187→0.169), MILUV 2 s 창은 4개 비행 mirror, NTU는 prior/head_filt 분리 실행 중</td></tr>
+<tr><td>E4</td><td>시퀀스별 앵커 수·높이 분포·태그 수·초당 거리값·ToA/TDOA 표</td><td>R3-1</td><td>불필요</td><td>하</td><td>완료 (anchor_table.txt)</td></tr>
+<tr><td>E5</td><td>3D 궤적 overlay 그림(데이터셋별 1개, 앵커·평면 포함)</td><td>R5-2</td><td>불필요</td><td>중</td><td>완료 (fig_traj3d.png)</td></tr>
+<tr><td>E6</td><td>샘플링 진단 그림(ESS 시계열, 가중치 분포, plane crossing 시 z posterior; 최종 설정)</td><td>R3-5, R4-1</td><td>불필요</td><td>중</td><td>완료 (fig_strip_final.png, fig_landscape_final.png): 통과 뒤 1.5 s 동안 샘플링 posterior가 평면 아래로 옮겨가고 LM의 Laplace 구름은 위에 머물며 mirror로 감</td></tr>
+<tr><td>E7</td><td>ablation(최종 설정): N 완료, 창 길이 정리, tempering on/off, 측정 모델(Tukey·혼합 대 가우시안)</td><td>R3-8, R4-3</td><td>필요</td><td>중 (GPU 2–3 h)</td><td>완료 (ablation7_table.txt): tempering 없음 MILUV 0.135→0.171, 나머지 1 cm 안; Tukey 컷 제거 33/33 발산; MILUV 혼합 대신 일반 Tukey 0.135→0.189; NTU head_filt 1이면 eee 2개 깨짐</td></tr>
+<tr><td>E8</td><td>지연 분석: 지연 0 정확도, epoch당 계산 시간 표</td><td>R3-9</td><td>불필요</td><td>하</td><td>완료</td></tr>
+<tr><td>E9</td><td>예전 실행을 새 채점으로 재점수(수치 변화를 설정 대 채점으로 분해)</td><td>응답서 신뢰성</td><td>불필요</td><td>하</td><td>완료 (rescore_v2_runs.txt)</td></tr>
+<tr><td>E10</td><td>재현성: 깨끗한 클론 빌드, reproduce.sh 확인, 절대경로 스크립트 27개 정리, 익명화 점검</td><td>R2-5(1차), AE</td><td>필요 (빌드)</td><td>중</td><td>완료: 깨끗한 복사본에서 빌드·reproduce.sh(IULUI) 재현 확인(표와 동일), 절대경로 27개 정리, tables 단계의 UTIL 없음 오류 수정</td></tr>
+<tr><td>E11</td><td>자세 RMSE(MILUV, IULUI; UTIL은 참고)</td><td>본문 표</td><td>불필요</td><td>–</td><td>완료</td></tr>
+<tr><td>E12</td><td>IMU 단독 추측항법 행(발산 확인)</td><td>R2-1(1차), R4-1 보조</td><td>불필요</td><td>하</td><td>완료 (imu_dead_reckoning.txt): IMU만 적분하면 2 s 뒤 0.10–0.47 m, 10 s 뒤 3–16 m(중앙값); 본문 한 문장 + 보충자료</td></tr>
+</table>
+
+<h2>우선순위</h2>
+<table><tr><th style="width:8%">등급</th><th style="width:52%">항목</th><th>근거</th></tr>
+<tr><td>P0</td><td>방법 절 재작성(MPPI 기반 샘플링 smoother, 표준 MPPI와의 차이 명시, 기호 정의); 주장 삭제(flip, degeneracy, III-C, 식 12, 1/κ); E10 재현성·익명화; 설정 공개표(E3의 표 부분)</td><td>R3-4/5/6/7, R4-4: 안 고치면 리젝 사유. 재현성은 1차 R2가 직접 컴파일 예고</td></tr>
+<tr><td>P1</td><td>E1·E2 본문 반영; E3 parameter-transfer 실험; E7 ablation; E5 3D 그림; E9 재점수</td><td>R3-2, R4-2, R4-5가 요구한 matched 비교와 튜닝 근거. 수치 변화 설명은 신뢰 문제</td></tr>
+<tr><td>P2</td><td>E6 진단 그림; E12 IMU 단독; 관련 연구 확장(Fang, Wang, population Monte Carlo·adaptive IS, RONet, He &amp; Chan)</td><td>R3-1, R3-2, R5-1의 포지셔닝 요구</td></tr>
+<tr><td>P3</td><td>Jetson 재측정; 보충 영상; 희소 앵커 실험</td><td>이번에는 하지 않고 한계·향후 과제로 적는다</td></tr>
+</table>
+
+<h2>수정 일정 (2주, 10/15–10/28)</h2>
+<p>1주차에 GPU 실험과 그림을 끝내고, 2주차는 글만 씁니다. 결정 세 가지는 1주차 안에 필요합니다.</p>
+<table><tr><th style="width:16%">기간</th><th style="width:60%">작업 내용</th><th>산출물</th></tr>
+<tr><td rowspan="6">1주차<br>10/15–10/21</td><td>[P0] 방법 절 재작성 초안(MPPI 기반 샘플링, 표준 MPPI와의 차이, 기호 정의) + 삭제 목록 반영</td><td>방법 절 초안</td></tr>
+<tr><td>[P1] E3 parameter-transfer 실험 실행(GPU 2 h, 10/15 시작) + 설정 공개표</td><td>설정 표, 전이 결과</td></tr>
+<tr><td>[P1] E7 ablation 실행(tempering, 측정 모델, 창 길이 정리)</td><td>ablation 표</td></tr>
+<tr><td>[P1] E5 3D overlay 그림, E9 예전 실행 재점수</td><td>그림 1, 분해 표</td></tr>
+<tr><td>[P0] E10 깨끗한 환경 빌드·재현 확인, 경로·익명화 정리</td><td>검증된 repo</td></tr>
+<tr><td>결정: SquareBob 처리, 알고리즘 변경 설명 방식, 응답서 첫 쪽 프레이밍</td><td>결정 메모</td></tr>
+<tr><td rowspan="4">2주차<br>10/22–10/28</td><td>[P0] 본문 v3 전체(초록·서론·관련 연구·실험·결론, 8쪽) + 보충자료(UTIL 비행별, 자세, 창 실험, LM 이론, 앵커 표)</td><td>원고 v3, 보충자료</td></tr>
+<tr><td>[P1] 응답서 point-by-point(R3 9개 + RONet, R4 5개, R5 3개) + 전역 변경 G1–G4</td><td>응답서</td></tr>
+<tr><td>[P2] E6 진단 그림, E12 IMU 단독, 관련 연구 확장</td><td>표·그림</td></tr>
+<tr><td>최종 표·그림 갱신, 교정, 패키징(10/28)</td><td>제출본</td></tr>
+</table>
+
+<h2>10/15 진행 결과 (실험 항목 12개 완료)</h2>
+<table><tr><th style="width:9%">항목</th><th style="width:38%">무엇을 했나</th><th>결과 한 줄</th></tr>
+<tr><td>E1</td><td>matched LM 비교, 104개 시퀀스 + mirror 구간 분해</td><td>LM 우세 0, KIMS 우세 14, 나머지 1 cm 안. 차이는 답이 둘로 갈리는 구간에서만. 계산은 1.4배</td></tr>
+<tr><td>E2</td><td>SFUISE 창을 KIMS와 맞춤(33개) + 게이트 대조(6개)</td><td>33/33 발산. 게이트 1.5 m로도 MILUV 0.87–1.46 m(7–13배 나쁨), NTU는 여전히 발산</td></tr>
+<tr><td>E3</td><td>공통 설정(q_acc 0.040, head_filt 1, 창 2 s)을 모든 데이터셋에</td><td>UTIL은 더 좋아짐(0.187→0.169). MILUV는 창 2 s에서 4개 비행 mirror. NTU는 head_filt 1에서 eee 2개 파손(prior는 무관)</td></tr>
+<tr><td>E4</td><td>시퀀스별 앵커 수·높이 분포·태그·측정률 표</td><td>MILUV 6앵커(z 1.4–1.9 m), NTU 3앵커(1.5 m), UTIL 8앵커(0.15–3.2 m), IULUI 4앵커(1.3 m / AC3 0.24–2.2 m)</td></tr>
+<tr><td>E5</td><td>3D 궤적 overlay(데이터셋별 1개, 앵커·평면 포함)</td><td>그림 완성(fig_traj3d.png)</td></tr>
+<tr><td>E6</td><td>샘플링 진단: SquareTurn 평면 통과의 posterior 띠와 landscape</td><td>통과 뒤 1.5 s 동안 샘플링 posterior는 평면 아래로 옮겨가고, LM의 Laplace 구름은 위에 머물며 mirror로 감</td></tr>
+<tr><td>E7</td><td>ablation(33개): tempering 제거, Tukey 컷 제거, MILUV 혼합 우도 제거</td><td>tempering 제거: MILUV만 0.135→0.171. 컷 제거: 33/33 발산(σ 0.3도). 혼합 대신 Tukey: 0.135→0.189</td></tr>
+<tr><td>E8</td><td>지연 분석</td><td>지연 0 출력 정확도 MILUV 0.212, NTU 0.456, UTIL 0.204; 계산 시간 표</td></tr>
+<tr><td>E9</td><td>v2 실행을 최종 채점으로 재점수</td><td>eee_01 0.743(v2 논문) → 0.468(채점만 바꿈) → 0.204(최종 설정). eee_03은 최종이 더 나쁨(mirror)</td></tr>
+<tr><td>E10</td><td>재현성</td><td>공개 파일만으로 빌드·reproduce.sh 재현 확인(IULUI 값 동일), 절대경로 27개 정리, 표 단계의 결함 1개 수정</td></tr>
+<tr><td>E11</td><td>자세 RMSE</td><td>MILUV KIMS 6.9° / SFUISE 10.9° / EKF 8.7°, IULUI 4.0° / 14.3°</td></tr>
+<tr><td>E12</td><td>IMU 단독 추측항법</td><td>2 s 뒤 0.10–0.47 m, 10 s 뒤 3–16 m 드리프트. 창 2–3 s 선택의 근거</td></tr>
+</table>
+
+<h2>기법의 출처 (방법 절 인용 목록)</h2>
+<p>KIMS의 구성 요소는 모두 기존 기법의 조합입니다. 방법 절에서 요소마다 "어디서 온 것인지"를 아래 출처로 밝히고, 새로운 점은 조합(입력공간 파라미터화 + Gaussian particle 식 proposal + annealing을 fixed-lag smoother로)과 검증임을 분명히 합니다.</p>
+<table><tr><th style="width:18%">구성 요소</th><th style="width:34%">우리 구현</th><th>원형과 출처</th></tr>
+<tr><td>샘플링–가중–평균 구조</td><td>입력 보정 샘플 → IMU 적분 rollout → exp(−비용) 가중 → 가중 평균</td><td>MPPI / information-theoretic MPC: Williams 외, ICRA 2017, T-RO 2018. 경로적분 제어: Kappen 2005, Theodorou 외 2010(PI²). "최적 분포 ∝ exp(−S/λ)·p"가 Bayes posterior와 같다는 관점: control as inference(Todorov 2008; Toussaint 2009; Levine 2018 tutorial)</td></tr>
+<tr><td>IMU 입력(잡음·바이어스)을 샘플링해 상태를 전파</td><td>상태가 아니라 IMU 입력 보정을 샘플링하고 운동학으로 적분</td><td>입자 필터의 motion-model 샘플링(Thrun·Burgard·Fox, Probabilistic Robotics 2005, 5장: 제어 입력 잡음을 샘플링해 입자를 전파). KIMS는 이를 한 스텝이 아니라 창 전체(2–3 s)의 입력에 적용</td></tr>
+<tr><td>cosine basis 파라미터화</td><td>창 안의 보정을 DCT 4개 계수로 표현(채널당), 고주파 섭동 제거</td><td>샘플링 MPC의 저차원·매끄러운 제어 파라미터화: STORM(Bhardwaj 외, CoRL 2021; B-spline 기저), Predictive Sampling(Howell 외 2022, MJPC; spline knot), Smooth-MPPI(Kim 외, RA-L 2022; 미분 공간 샘플링), STOMP(Kalakrishnan 외, ICRA 2011; 매끄러움 공분산으로 궤적 섭동 샘플링). 기저 자체는 DCT(Ahmed·Natarajan·Rao 1974)</td></tr>
+<tr><td>proposal을 가중 샘플의 평균·공분산에 맞춰 다시 뽑기</td><td>이전 창 posterior의 가우시안 근사(×1.2 팽창)에서 샘플링, 가중치에 prior/proposal 보정</td><td>Gaussian particle filter(Kotecha·Djurić, IEEE TSP 2003: posterior를 가중 입자의 가우시안으로 근사해 다음 단계에서 샘플링), population Monte Carlo / adaptive importance sampling(Cappé·Guillin·Marin·Robert 2004), cross-entropy method(Rubinstein 1999; CEM-MPC: Chua 외 2018, iCEM Pinneri 외 2020), MPPI 공분산 적응(Okada·Taniguchi, VI-MPC, CoRL 2019; CoVO-MPC, Yi 외, L4DC 2024). 중요도 가중치 target/proposal: Geweke 1989</td></tr>
+<tr><td>annealing (SMC 문헌의 tempering)</td><td>우도에 β 승(0&lt;β≤1)을 곱해 단계적으로 적용, ESS 기준으로 β 선택, 단계마다 proposal 재적합</td><td>annealed importance sampling(Neal 2001), annealed particle filter(Deutscher·Blake·Reid, CVPR 2000), progressive correction(Oudjane·Musso 2000), SMC samplers(Del Moral·Doucet·Jasra 2006), ESS 이분 탐색으로 β 적응(Jasra 외 2011). ESS 정의: Kong·Liu·Wong 1994</td></tr>
+<tr><td>창 시작 상태를 평균·공분산으로 이월</td><td>이전 창의 posterior(가중 샘플)를 가우시안으로 투영해 다음 창의 prior로</td><td>MHE의 arrival cost(Rao·Rawlings·Mayne, TAC 2003), 슬라이딩 창의 marginalization prior(Sibley 외 2010; OKVIS, Leutenegger 외 2015). 가우시안 투영(모멘트 맞춤) = assumed density filtering(Maybeck 1982; Minka 2001), 즉 칼만 필터가 사후분포를 평균·공분산으로 넘기는 것과 같은 조작. LM 쪽의 mode + Hessian 역 = Laplace 근사(Tierney·Kadane 1986)</td></tr>
+<tr><td>fixed-lag 출력</td><td>창이 밀릴 때 가장 오래된 epoch 상태를 확정(지연 = 창 길이)</td><td>fixed-lag smoothing(Anderson·Moore, Optimal Filtering 1979; RTS: Rauch·Tung·Striebel 1965)</td></tr>
+<tr><td>robust 거리 우도</td><td>Tukey biweight(컷 5σ) 또는 캘리브레이션 LOS/NLOS 혼합(MILUV)</td><td>Tukey biweight(Beaton·Tukey 1974), M-추정(Huber 1981). UWB NLOS 혼합 모델: Prorok·Martinoli, IJRR 2014; Marano 외, IEEE JSAC 2010</td></tr>
+<tr><td>GPU 병렬 rollout</td><td>8,192개 rollout을 FP32 커널로 한 패스에 평가</td><td>GPU MPPI(Williams 외 2017), 자율주행·드론 MPPI 구현들</td></tr>
+</table>
+<p class="note">인용은 방법 절에서 요소마다 한 번씩, 관련 연구 절에서 "KIMS는 Gaussian particle filter의 proposal 구조와 annealed importance sampling을 MPPI형 입력공간 rollout에 결합한 것"으로 위치를 잡습니다. 서지 사항은 원고 작성 때 다시 확인합니다(연도·학회 기준으로 적었고 쪽수는 생략).</p>
+
+<h2>용어</h2>
+<table><tr><th style="width:22%">용어</th><th>뜻</th></tr>
+<tr><td>fixed-lag smoother</td><td>최근 T초(창)의 측정으로 창 시작 시점의 상태를 확정하는 추정기. 출력이 창 길이만큼 늦음</td></tr>
+<tr><td>KIMS</td><td>우리 방법. 창 안의 IMU 입력 보정을 샘플링해 IMU 적분으로 후보 궤적을 만들고, UWB 거리 비용으로 가중 평균</td></tr>
+<tr><td>SFUISE</td><td>공개된 IMU+UWB continuous-time spline smoother(Li·Cao·Hanebeck, RA-L 2023). 기본 창 10 s</td></tr>
+<tr><td>MILUV / NTU VIRAL / UTIL / IULUI</td><td>실내 드론(6앵커, 2태그) / 실외 대형(3앵커 한 평면, 4태그) / Crazyflie TDOA(8앵커, 1태그, 79비행) / 우리 데이터(4앵커, 2태그)</td></tr>
+<tr><td>matched LM</td><td>KIMS와 같은 목적함수·창·prior·rollout을 쓰되 샘플링 대신 Levenberg–Marquardt 최적화로 푸는 비교 대상</td></tr>
+<tr><td>tempering</td><td>가중치가 한두 샘플에 몰리면(ESS 낮음) 비용에 β&lt;1을 곱해 완만하게 하고 다시 뽑는 절차</td></tr>
+<tr><td>ESS</td><td>유효 샘플 수 1/Σw<sub>i</sub>². 8,192개 샘플 중 실제로 의미 있는 샘플 수</td></tr>
+<tr><td>mirror / coplanar</td><td>앵커가 한 평면에 있으면 거리값만으로 평면 위아래를 구분 못 함. 반대편 해 = mirror</td></tr>
+<tr><td>head_filt</td><td>창을 떠나는 epoch의 거리값으로 창 시작 상태를 한 번 더 갱신하는 옵션(NTU에서는 끔)</td></tr>
+<tr><td>prior q_acc, q_gyr</td><td>입력 보정 계수에 두는 가우시안 prior의 폭(IMU 잡음 밀도 단위). 데이터셋별 튜닝값</td></tr>
+<tr><td>RMSE 중앙값</td><td>시퀀스마다 3D 위치 RMSE를 구하고 데이터셋 안에서 중앙값을 취한 값. 발산(100 m 초과)도 포함</td></tr>
+</table>
+
+<h2>그림</h2>
+<div style="page-break-inside:avoid; margin:8px 0 14px 0;"><img src="../../result/final/figs/fig_traj3d.png" style="width:100%; border:1px solid #ccc;"><p class="note" style="margin-top:4px;">그림 1. 데이터셋별 한 비행의 3D 궤적: GT(검정), KIMS(파랑), SFUISE(주황), UWB 앵커(빨강 삼각형)와 앵커 평면(회색). 앵커 높이 분포가 데이터셋마다 다른 것을 함께 보임(E5).</p></div>
+<div style="page-break-inside:avoid; margin:8px 0 14px 0;"><img src="../../result/figures/fig_boxplot.png" style="width:100%; border:1px solid #ccc;"><p class="note" style="margin-top:4px;">그림 2. 데이터셋별 시점별 3D 오차 분포(KIMS, SFUISE, 데이터셋 필터). 발산 실행은 제외하고 개수만 표기.</p></div>
+<div style="page-break-inside:avoid; margin:8px 0 14px 0;"><img src="../../result/figures/lm_vs_kims_final.png" style="width:100%; border:1px solid #ccc;"><p class="note" style="margin-top:4px;">그림 3. matched LM 비교: 같은 목적함수를 샘플링(파랑)과 LM(빨강)으로 풀 때. x, y는 같고 z에서 LM이 반사된 GT(회색 점선) 쪽으로 넘어감(E1).</p></div>
+<div style="page-break-inside:avoid; margin:8px 0 14px 0;"><img src="../../result/final/figs/fig_strip_final.png" style="width:100%; border:1px solid #ccc;"><p class="note" style="margin-top:4px;">그림 4. SquareTurn 평면 통과(47.1 s)의 샘플링 진단: 위는 샘플링 실행의 창 시작 z posterior 띠, 가운데는 LM 실행의 Laplace 구름, 아래는 P(z < 평면). 샘플링은 1.5 s 안에 평면 아래로 옮겨가고 LM은 위에 머묾(E6).</p></div>
+<div style="page-break-inside:avoid; margin:8px 0 14px 0;"><img src="../../result/figs/sfuise_window_err.png" style="width:100%; border:1px solid #ccc;"><p class="note" style="margin-top:4px;">그림 5. SFUISE 창 길이 실험: 공개 10 s 창(주황) 대 KIMS와 맞춘 창(빨강), 넓은 게이트(보라). 짧은 창은 MILUV에서 점진적으로 이탈해 발산, 게이트를 넓혀도 1 m 근처(E2).</p></div>
+<div style="page-break-inside:avoid; margin:8px 0 14px 0;"><img src="../../result/figures/fig_nsweep.png" style="width:100%; border:1px solid #ccc;"><p class="note" style="margin-top:4px;">그림 6. 샘플 수 N에 따른 정확도와 epoch당 계산 시간: N 2048 이상에서 평평, 작은 N은 annealing 패스가 늘어 오히려 느림.</p></div>
+<h2>리스크와 결정이 필요한 사항</h2>
+<p>지금 근거로 쓰면 억셉 가능성은 50–60%로 봅니다. 남는 위험은 실험이 아니라 아래 세 결정과 글에 달려 있습니다.</p>
+<ol>
+<li><b>SquareBob 처리(결정 필요).</b> v2 리뷰어는 SquareBob을 이름까지 봤고(R3-8), 최종 설정에서는 KIMS가 지는 비행입니다(0.784 대 SFUISE 0.189). A) 보충자료에 결과와 한 문장(추천), B) 본표에 포함(IULUI KIMS 2/4), C) 제외하고 응답서에만 한 문장. 말없이 빼면 숨긴 것으로 보입니다.</li>
+<li><b>알고리즘 두 번째 변경과 수치 변화.</b> eee_01이 0.743에서 0.204로 바뀝니다. 응답서 첫 쪽에 전역 변경(G1 추론 방식, G2 기준선·데이터셋, G3 채점 수정, G4 주장 철회)을 모아 쓰고, E9로 채점 변화와 설정 변화를 분리해 보여야 합니다. 그래도 "다른 논문"으로 볼 위험은 남습니다.</li>
+<li><b>프레이밍 충돌.</b> R3·R4는 "basin 유지"로 축소하라고 했고 우리는 철회 후 재정의입니다. 첫 쪽에서 "축소가 아니라 철회이고, 남는 기여는 matched LM 비교로 분리했다"를 먼저 말해야 합니다.</li>
+<li><b>샘플링 우위가 mirror 구간에서만 남.</b> LM보다 나은 14개가 전부 평면 근처입니다. "약관측 구간에서 posterior 질량을 이월한다"로 일반화해 쓰되, 두 번째 사례가 없다는 점은 알고 있어야 합니다.</li>
+<li><b>SFUISE 이식 공정성.</b> MILUV·NTU의 SFUISE는 우리 이식이고 설정은 다른 데이터셋용 공개값입니다. 게이트(0.3 / 1.5 m)와 창(10 / 2–3 s) 로그를 공개하고, 저자 설정인 UTIL에서 동률임을 근거로 둡니다.</li>
+<li><b>분량.</b> 4개 데이터셋, LM 비교, 설정 표, 앵커 표, 3D 그림, 지연 분석이 8쪽에 들어가지 않습니다. UTIL 비행별, 자세, 창 실험, LM 이론은 보충자료로 보냅니다.</li>
+<li><b>단어.</b> "general", "degenerate observability", "confinement"는 쓰지 않고, 희소·시변 앵커는 미평가 한계로 한 문장 둡니다.</li>
+</ol>
+<p class="note">관련 파일: result/final/lm_ablation.txt, sfuise_window.txt, anchor_table.txt, orientation_rmse.md, baselines_rmse.md; result/figs/lm_vs_kims_final.png, sfuise_window_err.png; 온라인 문서: claude.ai/code/artifact/57cf9460-91d7-4fe7-8ed9-93ed72fed112</p>
+</body></html>

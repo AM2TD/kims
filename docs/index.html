@@ -59,16 +59,21 @@
   pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;
       padding:16px;overflow-x:auto;font-size:.85rem;color:#cfcfd6}
   footer{padding:40px 0 60px;color:var(--dim);font-size:.9rem;text-align:center}
-  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  details{margin:12px 0}
+  summary{cursor:pointer;color:var(--teal);font-weight:600}
+  .tscroll{overflow-x:auto}
+  .fig2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  .small{font-size:.86rem}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}.fig2{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 
 <header class="wrap">
   <h1><span class="accent">KIMS</span>: Kinematics-Constrained MPPI Smoothing<br>for UWB-IMU 6-DoF Pose Estimation</h1>
-  <p class="sub">A fixed-lag smoother that samples IMU input compensations instead of poses —
-     so every candidate trajectory is kinematically reachable, and the estimate stays out of the
-     mirrored basin that UWB anchors at nearly the same height create.</p>
+  <p class="sub">A fixed-lag smoother that infers one compact window variable, the window-start offset and a smooth
+     correction of the IMU input, rolls thousands of candidates through the IMU kinematics on a GPU, and carries
+     the moments of the window posterior, not its mode, to the next window. UWB ranges and an IMU, nothing else.</p>
   <div class="btns">
     <a class="btn primary" href="https://github.com/AM2TD/kims">Code</a>
     <a class="btn" href="#paper">Paper</a>
@@ -78,290 +83,375 @@
 </header>
 
 <section id="demo" class="wrap">
-  <h2><span class="accent">▶</span> Demo</h2>
+  <h2><span class="accent">&#9654;</span> Demo</h2>
   <div class="carousel">
     <div class="slide" data-active>
-      <video controls playsinline preload="metadata" poster="assets/poster_circlespin.jpg">
-        <source src="assets/kims_demo_iului_onboard_rt.webm" type="video/webm">
-        <source src="assets/kims_demo_iului_onboard_rt.mp4" type="video/mp4">
+      <video controls playsinline preload="metadata" poster="assets/poster_coplanarsquareturn.jpg">
+        <source src="assets/kims_demo_iului_onboard_coplanarsquareturn.mp4" type="video/mp4">
       </video>
     </div>
     <div class="slide">
-      <video controls playsinline preload="none" poster="assets/poster_squarebob.jpg">
-        <source src="assets/kims_demo_iului_onboard_squarebob.webm" type="video/webm">
-        <source src="assets/kims_demo_iului_onboard_squarebob.mp4" type="video/mp4">
+      <video controls playsinline preload="none" poster="assets/poster_coplanarcirclespin.jpg">
+        <source src="assets/kims_demo_iului_onboard_coplanarcirclespin.mp4" type="video/mp4">
       </video>
     </div>
     <div class="slide">
-      <video controls playsinline preload="none" poster="assets/poster_squareturn.jpg">
-        <source src="assets/kims_demo_iului_onboard_squareturn.webm" type="video/webm">
-        <source src="assets/kims_demo_iului_onboard_squareturn.mp4" type="video/mp4">
+      <video controls playsinline preload="none" poster="assets/poster_noncoplanarcirclespin.jpg">
+        <source src="assets/kims_demo_iului_onboard_noncoplanarcirclespin.mp4" type="video/mp4">
       </video>
     </div>
     <button class="cnav prev" aria-label="Previous sequence">&#10094;</button>
     <button class="cnav next" aria-label="Next sequence">&#10095;</button>
   </div>
   <div class="cdots">
-    <button data-i="0" aria-label="CircleSpin"></button>
-    <button data-i="1" aria-label="SquareBob"></button>
-    <button data-i="2" aria-label="SquareTurn"></button>
+    <button data-i="0" aria-label="CoplanarSquareTurn"></button>
+    <button data-i="1" aria-label="CoplanarCircleSpin"></button>
+    <button data-i="2" aria-label="NoncoplanarCircleSpin"></button>
   </div>
   <p class="cap">
-    The sampler on real footage — every rollout of the current window projected into the
-    flight-arena camera, so the sampled input compensations are seen against the vehicle
-    they explain. Each IULUI sequence, takeoff to touchdown, in real time.
-    <span class="cname">CircleSpin</span>
+    The sampler on real footage. At every UWB epoch KIMS draws 8,192 window variables and rolls them out
+    through the IMU kinematics over the 2 s window; 200 of them are projected into the flight-arena camera,
+    coloured by importance weight relative to the heaviest sample, and the dot is the lag-0 estimate.
+    Each IULUI flight from 4 s before take-off to touchdown, in real time with the original sound.
+    <span class="cname">CoplanarSquareTurn</span>
   </p>
   <div class="vgrid">
     <div>
       <video autoplay loop muted playsinline controls>
-        <source src="assets/kims_demo_eee01.webm" type="video/webm">
         <source src="assets/kims_demo_eee01.mp4" type="video/mp4">
+        <source src="assets/kims_demo_eee01.webm" type="video/webm">
       </video>
-      <p class="cap">NTU VIRAL <code>eee_01</code> — outdoor, Leica ground truth</p>
+      <p class="cap">NTU VIRAL <code>eee_01</code> &mdash; three coplanar anchors at 1.5 m, Leica ground truth</p>
     </div>
     <div>
       <video autoplay loop muted playsinline controls>
-        <source src="assets/kims_demo_eee02.webm" type="video/webm">
         <source src="assets/kims_demo_eee02.mp4" type="video/mp4">
+        <source src="assets/kims_demo_eee02.webm" type="video/webm">
       </video>
-      <p class="cap">NTU VIRAL <code>eee_02</code> — outdoor, Leica ground truth</p>
+      <p class="cap">NTU VIRAL <code>eee_02</code> &mdash; three coplanar anchors at 1.5 m, Leica ground truth</p>
     </div>
     <div>
       <video autoplay loop muted playsinline controls>
-        <source src="assets/kims_demo_miluv_lowpace.webm" type="video/webm">
         <source src="assets/kims_demo_miluv_lowpace.mp4" type="video/mp4">
+        <source src="assets/kims_demo_miluv_lowpace.webm" type="video/webm">
       </video>
-      <p class="cap">MILUV <code>remoteControlLowPace_0_v2</code> — indoor, mocap ground truth</p>
+      <p class="cap">MILUV <code>remoteControlLowPace_0_v2</code> &mdash; six anchors, Vicon ground truth</p>
     </div>
     <div>
       <video autoplay loop muted playsinline controls>
-        <source src="assets/kims_demo_miluv_random3.webm" type="video/webm">
         <source src="assets/kims_demo_miluv_random3.mp4" type="video/mp4">
+        <source src="assets/kims_demo_miluv_random3.webm" type="video/webm">
       </video>
-      <p class="cap">MILUV <code>random3_0</code> — indoor, mocap ground truth</p>
+      <p class="cap">MILUV <code>random3_0</code> &mdash; six anchors, Vicon ground truth</p>
     </div>
     <div>
       <video autoplay loop muted playsinline controls>
-        <source src="assets/kims_demo_iului_circlespin.webm" type="video/webm">
-        <source src="assets/kims_demo_iului_circlespin.mp4" type="video/mp4">
+        <source src="assets/kims_demo_util_const4.mp4" type="video/mp4">
+        <source src="assets/kims_demo_util_const4.webm" type="video/webm">
       </video>
-      <p class="cap">IULUI <code>CircleSpin</code> — our dataset, mocap ground truth</p>
+      <p class="cap">UTIL <code>const4-trial1-tdoa2-traj1</code> &mdash; single tag, TDOA to eight anchors, Vicon ground truth</p>
     </div>
     <div>
       <video autoplay loop muted playsinline controls>
-        <source src="assets/kims_demo_iului_squarebob.webm" type="video/webm">
-        <source src="assets/kims_demo_iului_squarebob.mp4" type="video/mp4">
+        <source src="assets/kims_demo_iului_noncoplanarcirclespin.mp4" type="video/mp4">
+        <source src="assets/kims_demo_iului_noncoplanarcirclespin.webm" type="video/webm">
       </video>
-      <p class="cap">IULUI <code>SquareBob</code> — our dataset, mocap ground truth</p>
+      <p class="cap">IULUI <code>NoncoplanarCircleSpin</code> &mdash; our campaign, anchors spread 0.24&ndash;2.20 m, Qualisys ground truth</p>
     </div>
   </div>
   <p class="cap">
-    KIMS (red) tracking the ground truth (dashed) from UWB ranges + IMU only.
-    The teal grid is the UWB anchor plane — the flights repeatedly cross it
-    without mirroring.
+    The committed KIMS estimate (red, 2&ndash;3 s behind the newest measurement) tracking the ground truth (dashed)
+    from UWB ranges and IMU only. The teal grid marks the mean anchor height. On NTU VIRAL the three anchors are
+    exactly coplanar and the flights cross their plane on take-off and landing.
   </p>
 </section>
 
 <section class="wrap">
-  <h2><span class="accent">◆</span> Why flip ambiguity happens, and what KIMS does</h2>
-  <p>When all UWB anchors sit at nearly the same height, the range geometry admits a
-     <strong>mirrored solution</strong> on the other side of the anchor plane. The two basins are
-     nearly indistinguishable from ranges alone; once a filter or a sliding-window optimizer drifts
-     across, it never comes back.</p>
-  <p>KIMS recasts MPPI as a fixed-lag smoother whose virtual control is a
-     <strong>per-window IMU input compensation</strong>. Every rollout is generated through IMU
-     kinematic propagation — a hard constraint, not a cost term — so the 10,000 hypotheses explored
-     each epoch all stay within the kinematically reachable neighbourhood of the current estimate.
-     Basin confinement emerges from the sampling structure itself: no anchor-plane model, no
-     known-side or height-bound prior.</p>
+  <h2><span class="accent">&#9670;</span> What KIMS does</h2>
+  <p>UWB ranges are drift-free but heavy-tailed, with non-line-of-sight delays and per-link biases that persist
+     for seconds, and anchors are usually mounted at similar heights, so near the anchor plane the ranges constrain
+     the height only weakly. For exactly coplanar anchors the window cost has two mirror-symmetric minima, and the
+     summary of a window that is carried into the next one, the mode and curvature of an optimizer or the single
+     Gaussian of a filter, decides which branch the estimator follows.</p>
+  <p>KIMS recasts <strong>model predictive path integral control</strong> as a fixed-lag smoother. Its virtual
+     control input is a 33-dimensional <strong>window variable</strong>: an offset of the window-start state
+     (position, velocity, attitude) and a four-term cosine correction of the IMU input per channel, independent of
+     the window length. Every candidate trajectory is generated by propagating the IMU kinematics from the window
+     head, so it is kinematically consistent by construction. With temperature one the optimal path distribution of
+     MPPI is the posterior of the window variable given the window's ranges, and KIMS samples it with a proposal
+     adapted from the previous window, importance weights that correct for that proposal, and adaptive tempering
+     whenever the weights degenerate. The estimate is the weighted mean of the rollouts, the next proposal is the
+     weighted moments moved by one epoch, and the arrival prior of the new window head is one Kalman step with the
+     measurements of the leaving epoch only, so the carried covariance and the window cost never share a
+     measurement.</p>
   <div class="figcard"><img src="assets/fig_pipeline.png" alt="KIMS pipeline"></div>
-  <p class="cap">One window of the smoother: UWB ranges and timestamp-aligned IMU are accumulated
-     (a), <em>N</em> input compensations are sampled around the raw IMU (b), each is propagated
-     through IMU kinematics from the window-start state (c), and UWB residuals turn into
-     importance weights whose weighted mean commits the oldest state (d).</p>
+  <p class="cap">One solve: UWB ranges and IMU inputs are accumulated (a), <em>N</em> window variables are drawn from
+     the proposal (b), each is propagated through the IMU kinematics from the window head (c), and the UWB residuals
+     with the prior-to-proposal ratio give importance weights whose moments form the estimate and the next proposal (d).</p>
+  <div class="figcard"><img src="assets/fig_window_shift.png" alt="One window shift" style="max-width:640px;margin:0 auto"></div>
+  <p class="cap">One window shift. The leaving epoch updates the arrival prior of the new head (red); the weighted
+     moments of this solve, moved by one epoch, become the next proposal (blue).</p>
   <div class="grid">
-    <div class="card"><h3>Flip-robust</h3>
-      <p>Tracks flights that repeatedly and legitimately cross an elevated anchor plane.</p></div>
-    <div class="card"><h3>Real-time on GPU</h3>
-      <p>10,000 rollouts per UWB epoch; runs onboard a Jetson Orin NX within the sensor period.</p></div>
+    <div class="card"><h3>Kinematics-constrained</h3>
+      <p>Every rollout is an IMU integration with a smooth input correction. The sampled dimension stays at 33 for a
+         window of 100&ndash;230 UWB epochs.</p></div>
+    <div class="card"><h3>Moments, not modes</h3>
+      <p>The weighted mean and sample covariance keep both branches of a posterior that splits near a coplanar anchor
+         plane. A matched Levenberg&ndash;Marquardt solver of the same objective carries the mode and its curvature and
+         drops a branch in 30&nbsp;% of such windows.</p></div>
     <div class="card"><h3>Reproducible</h3>
-      <p>All three datasets ship in the repo. Offline needs no ROS, and a Docker image
-         builds the whole toolchain.</p></div>
+      <p>Code, the IULUI flights and <code>scripts/reproduce.sh</code> for all 104 sequences of MILUV, NTU VIRAL, UTIL
+         and IULUI. Offline, no ROS needed.</p></div>
   </div>
 </section>
 
 <section id="results" class="wrap">
-  <h2><span class="accent">▤</span> Results</h2>
-  <p>Position RMSE [m] against every baseline, tuned once per dataset. Orientation and the
-     mirrored-occupancy metrics are in the paper.</p>
-  <table>
-    <tr><th>Sequence</th><th>KIMS</th><th>UKF-RTS</th><th>EKF-RTS</th><th>Particle&nbsp;Sm.<br><span style="font-weight:400;font-size:.85em">10,000 particles</span></th><th>SW-PGO</th></tr>
-    <tr><td>IULUI · SquareBob</td><td class="best">0.139</td><td>0.778</td><td>0.776</td><td>0.260</td><td>0.216</td></tr>
-    <tr><td>IULUI · SquareTurn</td><td class="best">0.159</td><td>0.170</td><td>0.168</td><td>0.905</td><td>0.215</td></tr>
-    <tr><td>IULUI · CircleSpin</td><td class="best">0.191</td><td>0.561</td><td>0.551</td><td>0.416</td><td>0.320</td></tr>
-    <tr><td>MILUV · random3</td><td class="best">0.229</td><td>0.361</td><td>0.361</td><td>0.727</td><td>0.390</td></tr>
-    <tr><td>MILUV · circular3D</td><td class="best">0.367</td><td>0.612</td><td>0.613</td><td>0.641</td><td>0.663</td></tr>
-    <tr><td>MILUV · lowPace</td><td class="best">0.164</td><td>0.384</td><td>0.384</td><td>0.656</td><td>0.407</td></tr>
-    <tr><td>NTU VIRAL · eee_01</td><td class="best">0.743</td><td>9.167</td><td>8.637</td><td>—</td><td>8.943</td></tr>
-    <tr><td>NTU VIRAL · eee_02</td><td class="best">1.636</td><td>6.366</td><td>6.252</td><td>—</td><td>5.830</td></tr>
-    <tr><td>NTU VIRAL · eee_03</td><td class="best">1.371</td><td>6.832</td><td>6.695</td><td>—</td><td>6.493</td></tr>
-  </table>
-  <p class="cap">— : diverged. The RTS smoothers see the <em>entire</em> future measurement history
-     and still mirror; KIMS uses only a 15–18-epoch lag.</p>
+  <h2><span class="accent">&#9636;</span> Results</h2>
+  <p>Median 3D position RMSE [m] over the sequences of each dataset. KIMS, the matched LM solver and
+     <a style="color:var(--teal)" href="https://github.com/KIT-ISAS/SFUISE">SFUISE</a> (continuous-time spline
+     smoother, its authors' published configuration) are our runs on identical measurements; the dataset filters are
+     the values published with the datasets, the MILUV EKF with IMU, UWB <em>and a laser height sensor</em>
+     (Table 10 of the MILUV paper, &times;&radic;3) and the UTIL ESKF (Table 4 of the UTIL paper). Diverged runs
+     (RMSE above 100 m) rank above every finite value in the medians.</p>
+  <div class="tscroll"><table>
+    <tr><th>Dataset (sequences)</th><th>KIMS</th><th>Matched LM</th><th>SFUISE</th><th>Dataset filter</th></tr>
+    <tr><td>MILUV (13)</td><td class="best">0.135</td><td>0.197</td><td>0.704 <span class="small">(3 div.)</span></td><td>0.258 <span class="small">(EKF + height)</span></td></tr>
+    <tr><td>NTU VIRAL (9)</td><td class="best">0.435</td><td>0.633</td><td>2.537 <span class="small">(2 div.)</span></td><td>&mdash;</td></tr>
+    <tr><td>UTIL (79)</td><td>0.187</td><td>0.191</td><td class="best">0.184 <span class="small">(5 div.)</span></td><td>0.220 <span class="small">(ESKF)</span></td></tr>
+    <tr><td>IULUI (3)</td><td class="best">0.120</td><td>0.418</td><td>0.235</td><td>&mdash;</td></tr>
+  </table></div>
+  <p class="cap">Per sequence, KIMS is below the dataset filter on 13 of 13 MILUV and 78 of 79 UTIL flights, below SFUISE
+     on 13/13, 6/9, 33/79 and 2/3, and never above 100 m. On MILUV it is also below the same EKF with VINS-Fusion
+     visual-inertial odometry added (median 0.228 m, Table 11 of the MILUV paper) on 11 of 12 flights, with neither
+     camera nor height sensor. Orientation medians: MILUV 6.9&deg; (KIMS), 10.9&deg; (SFUISE), 8.7&deg; (EKF); IULUI
+     4.0&deg; against 14.3&deg;. The matched LM is never more accurate than KIMS by more than 1 cm and is less
+     accurate on 14 of the 104 sequences.
+     <a style="color:var(--teal)" href="assets/per_sequence_xyz.pdf">Per-sequence x/y/z plots and RMSE of all 104
+     sequences (PDF, 36 MB)</a>.</p>
 
-  <div class="figcard"><img src="assets/fig_boxplot.png" alt="Per-sequence error distributions on IULUI"></div>
-  <p class="cap">Error distributions on IULUI — position (top) and orientation (bottom). KIMS is
-     not just lower on average, its spread stays tight where the baselines develop long tails
-     from mirrored excursions.</p>
+  <h3 style="font-size:1.0rem;margin:22px 0 6px">Divergence, large errors and mirror-branch tracking</h3>
+  <p>A run counts as diverged when its RMSE exceeds 100 m, far above the 3.2 m of the worst non-diverged run. The
+     practical failure threshold is 1 m. Mirror-branch tracking, an estimate nearer the mirrored than the true
+     ground truth while the vehicle is more than 0.25 m from the anchor plane, is reported apart because its error
+     can stay below 1 m: KIMS follows the mirror branch on <code>eee_03</code> and <code>nya_02</code> for 34 and
+     74&nbsp;% of the scored time (its two runs above 1 m), on <code>nya_01</code> and <code>nya_03</code> for
+     21&ndash;23&nbsp;%, and on three MILUV flights for 2&ndash;8&nbsp;%.</p>
+  <div class="tscroll"><table>
+    <tr><th>Dataset</th><th>Method</th><th>Div.</th><th>&gt;1 m</th><th>Time &gt;1 m [%]</th><th>Longest [s]</th><th>Max [m]</th></tr>
+    <tr><td>MILUV (13)</td><td>KIMS</td><td class="best">0</td><td class="best">0</td><td class="best">0.00</td><td class="best">0.0</td><td class="best">0.91</td></tr>
+    <tr><td></td><td>SFUISE</td><td>3</td><td>1</td><td>5.92</td><td>25.9</td><td>5.55</td></tr>
+    <tr><td></td><td>EKF + height</td><td>0</td><td>3</td><td>2.01</td><td>5.6</td><td>32.2</td></tr>
+    <tr><td>NTU VIRAL (9)</td><td>KIMS</td><td class="best">0</td><td class="best">2</td><td class="best">21.3</td><td>165.6</td><td class="best">5.32</td></tr>
+    <tr><td></td><td>SFUISE</td><td>2</td><td>4</td><td>36.7</td><td>158.2</td><td>9.25</td></tr>
+    <tr><td>UTIL (79)</td><td>KIMS</td><td class="best">0</td><td class="best">0</td><td class="best">0.17</td><td>4.1</td><td>2.22</td></tr>
+    <tr><td></td><td>SFUISE</td><td>5</td><td>1</td><td>0.43</td><td>6.4</td><td>8.94</td></tr>
+    <tr><td></td><td>ESKF</td><td>0</td><td>0</td><td>1.89</td><td>3.6</td><td>2.19</td></tr>
+    <tr><td>IULUI (3)</td><td>KIMS</td><td class="best">0</td><td class="best">0</td><td class="best">0.00</td><td class="best">0.0</td><td class="best">0.50</td></tr>
+    <tr><td></td><td>SFUISE</td><td>0</td><td>0</td><td>0.00</td><td>0.0</td><td>0.65</td></tr>
+  </table></div>
+  <p class="cap">Div.: runs with RMSE above 100 m. &gt;1 m: non-diverged runs with RMSE above 1 m. Time share
+     (pooled over the non-diverged runs), longest episode and largest error refer to 3D errors above 1 m. Filters are
+     our runs of the released code.</p>
 
-  <div class="figcard"><img src="assets/fig_sensitivity.png" alt="Rollout-count sensitivity"></div>
-  <p class="cap">Rollout-count sensitivity. (a) Position RMSE against the number of sampled
-     rollouts <em>N</em> on all three datasets. (b) Solve time on a Jetson Orin NX, mean and
-     standard deviation per solve; the dashed lines are the 10 ms UWB and 20 ms IMU periods.</p>
+  <div class="figcard"><img src="assets/fig_traj_axes.png" alt="Per-axis trajectories on one sequence per dataset"></div>
+  <p class="cap">Per-axis trajectories of KIMS, SFUISE and the dataset filter (our runs) on one sequence per dataset,
+     MILUV <code>random3_0</code>, NTU VIRAL <code>eee_01</code>, UTIL <code>const4-trial1-tdoa2-traj1</code> and
+     IULUI <code>CoplanarCircleSpin</code>; the column titles give the 3D RMSE.</p>
+  <div class="figcard"><img src="assets/fig_boxplot.png" alt="Error distributions per dataset"></div>
+  <p class="cap">Distribution of the per-sequence 3D RMSE on each dataset (box: quartiles, whiskers: range; diverged
+     runs counted at the top).</p>
+
+  <div class="figcard"><img src="assets/fig_z_crossings.png" alt="Altitude versus time on the coplanar flights"></div>
+  <p class="cap">Altitude over the flights with coplanar or nearly coplanar anchors. The dotted grey line is the
+     ground truth mirrored in the anchor plane (teal). On the IULUI flights the vehicle crosses the plane 6 and 14
+     times; on MILUV constellation 1 the anchors lie within 1 cm of one height.</p>
+
+  <h3 style="font-size:1.0rem;margin:22px 0 6px">Sampling versus the matched LM solver</h3>
+  <p>To separate the inference step from the parameterization, the matched LM solver keeps the window variable,
+     the prior, the cost, the GPU rollouts, the proposal and the window shift of KIMS and replaces only the weighted
+     samples: it minimizes the same objective from the proposal mean (at most eight iterations, gradient and Hessian
+     from central finite differences over 1,123 of the same rollouts) and draws its samples from the Laplace
+     approximation. Over the 104 sequences it is never more accurate than KIMS by more than 1 cm and worse on 14,
+     and on the coplanar IULUI flights it stays on the mirror branch for 13 and 10&nbsp;% of the flight (KIMS 0.0 and
+     0.1&nbsp;%), which accounts for the whole gap (0.548 against 0.120 m, 0.418 against 0.118 m). With the same
+     rollouts it takes 12.7 ms per MILUV epoch against 9.0 ms for KIMS.</p>
+  <p>Single windows with the carried prior and proposal held fixed, 320 near-plane solves before the LM mirror
+     episodes and 120 far from the plane, each solved by sampling (IS), by LM from the proposal mean and by LM from
+     15 other starts:</p>
+  <div class="tscroll"><table>
+    <tr><th>Windows</th><th>n</th><th>Window RMSE IS / LM [m]</th><th>Lower by &gt;2 cm, IS / LM</th><th>&Delta;&Phi;</th><th>&gt;1 LM minimum</th><th>Mass error IS / LM</th></tr>
+    <tr><td>CoplanarSquareTurn</td><td>35</td><td>0.137 / 0.134</td><td>14 / 14 %</td><td>&minus;0.02</td><td>11 %</td><td>0.015 / 0.036</td></tr>
+    <tr><td>CoplanarCircleSpin</td><td>105</td><td>0.135 / 0.132</td><td>7 / 22 %</td><td>&minus;0.04</td><td>30 %</td><td>0.029 / 0.137</td></tr>
+    <tr><td>MILUV random3_0</td><td>90</td><td>0.321 / 0.352</td><td>34 / 0 %</td><td>&minus;0.11</td><td>16 %</td><td>0.014 / 0.058</td></tr>
+    <tr><td>MILUV obstacles</td><td>90</td><td>0.269 / 0.263</td><td>48 / 22 %</td><td>&minus;0.25</td><td>23 %</td><td>0.037 / 0.207</td></tr>
+    <tr><td>Far from the plane</td><td>120</td><td>0.071 / 0.071</td><td>0 / 0 %</td><td>&minus;0.03</td><td>2 %</td><td>&mdash;</td></tr>
+  </table></div>
+  <p class="cap">&Delta;&Phi; = objective of the LM mode minus that of the weighted mean (LM attains the lower
+     objective). Mass error: how far the carried Gaussian misses the true-side posterior mass at the newest epoch
+     in the windows whose posterior keeps both branches, moment matching (IS) against the Laplace Gaussian (LM).
+     The Laplace Gaussian is off by more than 0.1 in 43 % of those windows and drops one branch in 30 %; a best of
+     16 LM starts improves on the proposal-mean start by more than 0.1 in only 1 %.</p>
+  <div class="figcard"><img src="assets/fig_strip.png" alt="Posterior mass crossing the anchor plane" style="max-width:720px;margin:0 auto"></div>
+  <p class="cap">A crossing on CoplanarSquareTurn: the sampled posterior of the window-start height puts mass below
+     the anchor plane and the weighted mean follows within 1.5 s, while the LM iterates stay in the upper mode and
+     the Laplace cloud climbs to the mirror branch.</p>
+
+  <div class="figcard"><img src="assets/fig_sensitivity.png" alt="Rollout-count sensitivity" style="max-width:760px;margin:0 auto"></div>
+  <p class="cap">Rollout count. (a) Median RMSE against <em>N</em>: flat from 2,048 to 16,384, and below 1,024 the
+     first pass collapses on MILUV and IULUI so the tempering passes make the solve slower, not faster.
+     (b) Solve time per epoch on CoplanarSquareTurn, desktop GPU and Jetson Orin NX, dotted line at the 10 ms epoch
+     interval.</p>
+
+  <div class="figcard"><img src="assets/fig_seeds.png" alt="Seed repetition"></div>
+  <p class="cap">Ten random seeds on 33 sequences. The RMSE spans 0.41&ndash;0.87 m on <code>sbs_02</code> and
+     0.86&ndash;0.90 m on <code>nya_03</code>, where the branch near the mirror is decided by the seed, and stays
+     within 7 mm on the other 31. Bottom: share of time on the mirror side per seed on the coplanar flights.</p>
 </section>
 
 <section class="wrap">
-  <h2><span class="accent">🛰</span> The IULUI dataset</h2>
-  <p>The repository ships <strong>IULUI</strong>, our UWB-IMU flight campaign built specifically to
-     study anchor-plane degeneracy: four anchors at nearly the same height, and trajectories
-     that repeatedly cross the anchor plane — exactly the regime where fixed side-of-plane priors
-     reject valid states. Three sequences (<code>SquareBob</code>, <code>SquareTurn</code>,
-     <code>CircleSpin</code>), raw UWB ranges (2 tags × 4 anchors) + IMU, motion-capture
-     ground truth, as rosbag and CSV. MILUV and NTU VIRAL evaluation sequences are included too.</p>
-  <p><strong>Deployment scale.</strong> The four anchors sit on a 5.9 × 5.9 m square at 1.30 m
-     height with under 8 mm of height spread (exactly coplanar in practice). The flights span a
-     3.7 × 3.8 × 1.7 m volume, 82–97 s and 36–144 m of path per sequence, repeatedly crossing
-     the anchor plane (30 ground-truth crossings over the three sequences).</p>
-  <p><strong>Sensor rates.</strong> Nooploop LinkTrack ranges arrive as 100 Hz epochs (10 ms),
-     the onboard IMU runs at ~50 Hz (20 ms), and Qualisys ground truth at 70 Hz. The UWB epoch
-     rate being higher than the IMU rate is intentional in this campaign — IMU samples are
-     interpolated to UWB timestamps by the estimator.</p>
-  <img src="assets/fig_z_crossings.png"
-       alt="Altitude versus time for all methods on the three IULUI sequences"
-       style="width:100%;border-radius:12px;margin-top:14px">
-  <p class="cap">Altitude over each flight. Every sequence repeatedly crosses the anchor plane
-     (teal), where the true and mirrored solutions meet. Each baseline jumps onto the mirrored
-     branch (faint dotted) on at least one sequence, while KIMS (red) tracks the true branch
-     aside from sub-second transients near crossings.</p>
-</section>
-
-<section class="wrap">
-  <h2><span class="accent">⚡</span> Quick start</h2>
-  <pre># offline — no ROS needed
-cmake -S . -B build -DKIMS_NO_ROS=ON &amp;&amp; cmake --build build -j8
-python3 scripts/run.py --method all --dataset all
-python3 scripts/plot.py
-
-# online — real-time ROS node, works on all three datasets
-roslaunch kims kims_online.launch dataset:=ntu sequence:=eee_01</pre>
-  <p>Docker, per-dataset instructions and the online node's topics are in the
-     <a style="color:var(--teal)" href="https://github.com/AM2TD/kims#readme">README</a>.</p>
+  <h2><span class="accent">&#128752;</span> The IULUI dataset</h2>
+  <div class="figcard"><img src="assets/env.jpg" alt="IULUI flight arena"></div>
+  <p class="cap">The arena: an OmniNxt aerial robot with two Nooploop LinkTrack P-B UWB tags, an IMU and a Jetson Orin
+     NX, four LinkTrack anchors on tripods, and ten Qualisys Arqus cameras for ground truth.</p>
+  <p>The repository ships <strong>IULUI</strong>, our UWB-IMU flight campaign. Two tags range to four anchors at
+     800 ranges per second, the IMU runs at 50 Hz and Qualisys ground truth at 70 Hz; raw ranges, IMU and ground
+     truth are released as CSV with the anchor and tag geometry in JSON. Two anchor layouts were flown on the same
+     5.9 &times; 5.9 m square:</p>
+  <div class="tscroll"><table>
+    <tr><th>Flight</th><th>Layout</th><th>Anchor heights</th><th>Plane crossings</th><th>Motion</th><th>Duration</th></tr>
+    <tr><td>CoplanarSquareTurn</td><td>AC1</td><td>1.30 m, coplanar within 8 mm</td><td>6</td><td>square with turns, about 0.5 m/s</td><td>82 s</td></tr>
+    <tr><td>CoplanarCircleSpin</td><td>AC1</td><td>1.30 m, coplanar within 8 mm</td><td>14</td><td>circle at 2 m/s with continuous yaw spin</td><td>84 s</td></tr>
+    <tr><td>NoncoplanarCircleSpin</td><td>AC3</td><td>0.24, 1.06, 1.42, 2.20 m</td><td>&mdash;</td><td>the same circle and spin</td><td>84 s</td></tr>
+  </table></div>
+  <p class="cap">The AC1 flights cross the anchor plane repeatedly, exactly where the range likelihood of coplanar
+     anchors is symmetric about the plane; the AC3 flight repeats the CircleSpin maneuver under spread anchors.
+     A fourth AC1 flight, <code>SquareBob</code>, is in the repository but not evaluated in the paper. The flights
+     are named <code>SquareTurn</code>, <code>CircleSpin</code> and <code>AC3_125000</code> in the data folder.</p>
 </section>
 
 <section id="timing" class="wrap">
-  <h2><span class="accent">⏱</span> Solve-time distribution on the Jetson Orin NX</h2>
-  <p>Per-solve wall-clock time of the KIMS GPU solver measured onboard a Jetson Orin NX over
-     5,893 UWB epochs of an IULUI flight (10 ms epoch period, <em>T</em> = 15). The paper quotes
-     the mean at <em>N</em> = 10,000 and the full distribution is below. Real time here means
-     sustained throughput at the sensor rate rather than a hard per-epoch deadline: a fixed-lag
-     smoother queues the measurements of a slow epoch and absorbs them in the next window, so the
-     fractions above 10 and 20 ms are given for reference, not as failures.</p>
-  <table>
-    <tr><th>Rollouts <em>N</em></th><th>mean [ms]</th><th>median</th><th>p95</th><th>p99</th><th>max</th><th>&gt; 10 ms</th><th>&gt; 20 ms</th></tr>
-    <tr><td>256</td><td>1.54</td><td>1.14</td><td>3.75</td><td>4.99</td><td>16.4</td><td>0.03%</td><td>0%</td></tr>
-    <tr><td>1,024</td><td>1.78</td><td>1.59</td><td>3.00</td><td>4.38</td><td>6.0</td><td>0%</td><td>0%</td></tr>
-    <tr><td>4,096</td><td>4.24</td><td>3.94</td><td>6.44</td><td>8.52</td><td>24.1</td><td>0.20%</td><td>0.02%</td></tr>
-    <tr><td>8,192</td><td>7.17</td><td>7.26</td><td>8.70</td><td>10.20</td><td>23.9</td><td>1.34%</td><td>0.03%</td></tr>
-    <tr><td class="best">10,000</td><td class="best">9.1</td><td class="best">8.49</td><td class="best">13.57</td><td class="best">15.67</td><td class="best">30.6</td><td class="best">18.85%</td><td class="best">0.14%</td></tr>
-    <tr><td>16,384</td><td>12.97</td><td>12.23</td><td>16.00</td><td>17.98</td><td>43.1</td><td>100%</td><td>0.37%</td></tr>
-  </table>
-  <p><strong>What "real time" means here.</strong> KIMS is a smoother, not a controller, so the
-     requirement is that it sustains the sensor rate rather than meeting a hard per-epoch deadline:
-     the mean solve time stays below the 10 ms UWB epoch, so the input queue does not grow, and an
-     occasional slow epoch is absorbed by the next window instead of dropping a measurement. The
-     &gt; 10 ms and &gt; 20 ms columns are given so that the tail can be judged, not because a solve
-     past one epoch is a failure. Reducing <em>N</em> from 10,000 to 8,192 trades a small amount of
-     accuracy for a much shorter tail, as the rows above show.</p>
-  <p><strong>Two latencies, not one.</strong> The times above are <em>computational</em> latency,
-     the cost of producing one solve. Separate from it is the <em>estimation</em> latency built into
-     fixed-lag smoothing: the committed state is the oldest one in the window, so it trails the
-     newest measurement by the horizon length. That delay is what buys the smoothing accuracy, and
-     a consumer that needs the newest pose reads the propagated head of the window instead.</p>
-  <p class="cap">Timing files: <code>result/&lt;dataset&gt;/&lt;seq&gt;/kims_timing.txt</code>, one line
-     per solve.</p>
+  <h2><span class="accent">&#9201;</span> Computation time and latency</h2>
+  <p>Per-epoch solve time of KIMS at <em>N</em> = 8,192 with FP32 rollouts and eight host threads, one process at a
+     time, on a desktop GPU (RTX 5070 Ti with an i7-14700K, mean / median / p95) and onboard a Jetson Orin NX
+     (MAXN, clocks fixed, JetPack 5.1.2, median). The epoch interval is the mean spacing of the UWB epochs of each dataset.</p>
+  <div class="tscroll"><table>
+    <tr><th>Dataset</th><th>Epoch [ms]</th><th>Desktop mean / median / p95 [ms]</th><th>&gt; interval</th><th>Jetson median [ms]</th><th>&gt; interval</th><th>Lag</th><th>RMSE committed / lag-0 [m]</th></tr>
+    <tr><td>MILUV</td><td>14.4</td><td>8.7 / 5.2 / 20.7</td><td>6.1 %</td><td>37.3</td><td>100 %</td><td>3 s</td><td>0.135 / 0.212</td></tr>
+    <tr><td>NTU VIRAL</td><td>16.5</td><td>3.8 / 3.8 / 3.9</td><td>0.0 %</td><td>23.6</td><td>100 %</td><td>2 s</td><td>0.435 / 0.456</td></tr>
+    <tr><td>UTIL</td><td>20.0</td><td>5.4 / 4.2 / 10.1</td><td>1.2 %</td><td>26.8</td><td>100 %</td><td>2 s</td><td>0.187 / 0.204</td></tr>
+    <tr><td>IULUI</td><td>10.0</td><td>5.3 / 5.3 / 5.4</td><td>0.0 %</td><td>35.2</td><td>100 %</td><td>2 s</td><td>0.120 / 0.152</td></tr>
+  </table></div>
+  <p><strong>Desktop.</strong> The mean solve time is below the epoch interval on every dataset. On MILUV the
+     tempered solves form a tail that arrives in bursts, and a first-in-first-out replay delays some estimates by up
+     to 2.1 s.</p>
+  <p><strong>Jetson Orin NX.</strong> The same runs reproduce the desktop trajectories within 3 cm, but one sampling
+     pass takes 24&ndash;39 ms, five to seven times the desktop, so at <em>N</em> = 8,192 the median solve exceeds the epoch
+     interval on every dataset by 1.3&ndash;3.5 times. A smaller <em>N</em> does not close the gap: on
+     CoplanarSquareTurn the Jetson time is lowest at <em>N</em> = 2,048 with a median of 10.9 ms against the 10 ms interval,
+     on MILUV and UTIL <em>N</em> = 2,048 is slower than 8,192 through extra tempering, and only NTU VIRAL keeps up
+     at <em>N</em> = 2,048 (7.8 against 17 ms). KIMS therefore sustains the sensor rate on the desktop GPU, and we
+     claim no onboard real-time operation at the final settings.</p>
+  <div class="figcard"><img src="assets/fig_jetson_nsweep.png" alt="Jetson solve time against N" style="max-width:620px;margin:0 auto"></div>
+  <p class="cap">Median solve time per epoch on the Jetson Orin NX against the rollout count on CoplanarSquareTurn.</p>
+  <p><strong>Two latencies.</strong> The times above are the cost of producing one solve. Separate from it is the
+     estimation latency of fixed-lag smoothing: the committed state is the oldest one in the window, so it trails
+     the newest measurement by 2&ndash;3 s. The newest state of the window is available at every solve as a lag-0
+     output, at the RMSE in the last column.</p>
 </section>
 
-<section id="seeds" class="wrap">
-  <h2><span class="accent">🎲</span> Seed repetition</h2>
-  <p>Both stochastic estimators were re-run with ten different random seeds on the three IULUI
-     sequences. KIMS uses <em>N</em> = 10,000 rollouts, and Particle Smoothing is shown at both the
-     10,000 particles reported in the paper, which match that rollout budget, and the reduced 1,000
-     of the original configuration. Diamonds are the runs reported in Tables I and III of the paper,
-     dots are the individual seeds, bars the mean ± std. Occupancy uses the paper's definition
-     (gated to 0.25 m from the anchor plane).</p>
-  <img src="assets/fig_seeds.png" alt="Seed-repetition statistics for KIMS and Particle Smoothing"
-       style="width:100%;border-radius:12px;margin-top:6px">
-  <p class="cap">KIMS stays below Particle Smoothing on every sequence at every seed. Its spread
-     comes from transients at plane crossings rather than consolidation in the mirrored basin.
-     Particle Smoothing collapses at every seed at both particle counts. Raising the budget tenfold
-     from 1,000 particles to the 10,000 reported in the paper moves occupancy only from 19.8, 72.1,
-     and 22.3&nbsp;% to 17.9, 70.4, and 17.2&nbsp;% on the three sequences, so the collapse is
-     structural under a reflection-symmetric likelihood rather than an artifact of the sample
-     budget.</p>
+<section id="sfuise" class="wrap">
+  <h2><span class="accent">&#9878;</span> Comparison conditions</h2>
+  <p><strong>SFUISE</strong> runs with its authors' published configuration (10 Hz spline knots, 10 s sliding
+     window, 0.3 m residual gate), receives the unbinned ranges with the lever arm of every tag (the TDOA stream of
+     the single tag on UTIL) and the IMU as configured in its release, estimates its own IMU biases, and its spline is
+     evaluated at the body origin before scoring. The scored output is its last estimate of each state before that
+     state leaves the window, about 10 s after its time, which does not explain its accuracy: read 0, 2 or 10 s after
+     the measurement on eight UTIL flights it gives 0.139, 0.127 and 0.125 m against 0.135 and 0.130 m for KIMS at
+     lag 0 and 2 s.</p>
+  <p><strong>Short-window test.</strong> In our configuration, with only its window shortened to that of KIMS
+     (3 s on MILUV, 2 s elsewhere) and every other setting unchanged, SFUISE diverged on all 33 sequences we ran.
+     With its residual gate widened from 0.3 to 1.5 m it tracked the three MILUV flights we retried at 3&ndash;13
+     times its 10 s error (0.868, 1.462 and 1.101 m against 0.123, 0.114 and 0.368 m) while the three NTU VIRAL
+     sequences still diverged, so in our setting the short window degrades SFUISE and the published gate turns the
+     degradation into divergence. The per-sequence results:</p>
+  <details><summary>SFUISE at its published window and at the KIMS window, per sequence (3D RMSE [m])</summary>
+  <div class="tscroll"><table class="small">
+    <tr><th>Sequence</th><th>KIMS</th><th>SFUISE 10 s</th><th>SFUISE at the KIMS window</th><th>+ 1.5 m gate</th></tr>
+    <tr><td>MILUV rcHighPace_1</td><td>0.205</td><td>div.</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV random3_1</td><td>0.231</td><td>0.488</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV random3_0</td><td>0.165</td><td>0.704</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV circular3D_0</td><td>0.093</td><td>0.123</td><td>div.</td><td>0.868</td></tr>
+    <tr><td>MILUV rcLowPace_0_v2</td><td>0.086</td><td>0.114</td><td>div.</td><td>1.462</td></tr>
+    <tr><td>MILUV rcLowPace_0</td><td>0.202</td><td>0.955</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV circular2D_0</td><td>0.134</td><td>0.192</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV rcHighPace_0</td><td>0.100</td><td>div.</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV obstacles_random3_0b</td><td>0.130</td><td>0.639</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV random3_2</td><td>0.135</td><td>div.</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV rcHighPace_2</td><td>0.244</td><td>0.763</td><td>div.</td><td></td></tr>
+    <tr><td>MILUV noAT_random3_2b</td><td>0.130</td><td>0.368</td><td>div.</td><td>1.101</td></tr>
+    <tr><td>MILUV noAT_rcHighPace_2b</td><td>0.191</td><td>1.144</td><td>div.</td><td></td></tr>
+    <tr><td>NTU VIRAL eee_01</td><td>0.204</td><td>0.126</td><td>div.</td><td>div.</td></tr>
+    <tr><td>NTU VIRAL eee_02</td><td>0.367</td><td>2.537</td><td>div.</td><td></td></tr>
+    <tr><td>NTU VIRAL eee_03</td><td>1.845</td><td>1.144</td><td>div.</td><td></td></tr>
+    <tr><td>NTU VIRAL nya_01</td><td>0.791</td><td>div.</td><td>div.</td><td></td></tr>
+    <tr><td>NTU VIRAL nya_02</td><td>3.084</td><td>0.395</td><td>div.</td><td>div.</td></tr>
+    <tr><td>NTU VIRAL nya_03</td><td>0.903</td><td>div.</td><td>div.</td><td></td></tr>
+    <tr><td>NTU VIRAL sbs_01</td><td>0.190</td><td>0.207</td><td>div.</td><td>div.</td></tr>
+    <tr><td>NTU VIRAL sbs_02</td><td>0.409</td><td>3.109</td><td>div.</td><td></td></tr>
+    <tr><td>NTU VIRAL sbs_03</td><td>0.435</td><td>3.146</td><td>div.</td><td></td></tr>
+    <tr><td>UTIL const1-trial1-tdoa2</td><td>0.096</td><td>0.095</td><td>div.</td><td></td></tr>
+    <tr><td>UTIL const1-trial1-tdoa3</td><td>0.100</td><td>0.094</td><td>div.</td><td></td></tr>
+    <tr><td>UTIL const2-trial1-tdoa2</td><td>0.095</td><td>0.094</td><td>div.</td><td></td></tr>
+    <tr><td>UTIL const2-trial1-tdoa3</td><td>0.095</td><td>0.096</td><td>div.</td><td></td></tr>
+    <tr><td>UTIL const3-trial1-tdoa2</td><td>0.230</td><td>0.330</td><td>div.</td><td></td></tr>
+    <tr><td>UTIL const3-trial1-tdoa3</td><td>0.199</td><td>0.207</td><td>div.</td><td></td></tr>
+    <tr><td>UTIL const4-trial1-tdoa2-traj1</td><td>0.198</td><td>0.202</td><td>div.</td><td></td></tr>
+    <tr><td>UTIL const4-trial1-tdoa3-traj1</td><td>0.159</td><td>0.155</td><td>div.</td><td></td></tr>
+    <tr><td>IULUI CoplanarSquareTurn</td><td>0.120</td><td>0.106</td><td>div.</td><td></td></tr>
+    <tr><td>IULUI CoplanarCircleSpin</td><td>0.118</td><td>0.235</td><td>div.</td><td></td></tr>
+    <tr><td>IULUI NoncoplanarCircleSpin</td><td>0.128</td><td>0.300</td><td>div.</td><td></td></tr>
+  </table></div>
+  </details>
+  <p><strong>Dataset filters.</strong> The MILUV EKF additionally uses a laser height sensor and starts from the
+     ground-truth state; the UTIL ESKF is the development-kit filter. Both are quoted as published, and our runs of
+     the released code, used for the per-epoch statistics, match the published RMSE within 1 cm on MILUV and are
+     within 5 mm or lower on UTIL (median 0.217 against 0.220 m).</p>
+  <p><strong>Common protocol.</strong> All methods share the same sensor streams and extrinsics and start from the
+     same pose: the tilt from gravity alignment at rest, zero yaw except on NTU VIRAL (rest-phase estimate), and the
+     take-off position from the anchor-frame origin (MILUV), the first ground-truth sample (IULUI, NTU VIRAL
+     <code>eee</code>), the development-kit start (UTIL) or a rest-phase range fit below the anchor plane
+     (NTU VIRAL <code>nya</code>, <code>sbs</code>). The 3D RMSE of the committed output is scored over the whole
+     ground-truth span without alignment, except on NTU VIRAL, whose Leica frame is not surveyed in the anchor frame:
+     there the prism point is aligned by a yaw-and-translation fit and scored 10 s from both ends. The earlier
+     in-repository baselines (EKF-RTS, UKF-RTS, sliding-window pose-graph optimization, particle smoothing) remain
+     available through <code>scripts/run.py --method</code>.</p>
 </section>
 
-<section id="baselines" class="wrap">
-  <h2><span class="accent">⚖</span> Baseline implementations</h2>
-  <p>All baselines share the same measurements, extrinsics, robust loss, and cold start as
-     KIMS, and were tuned once per dataset. The exact implementations are in
-     <code>src/offline/</code>; the two that reviewers most often ask about are specified here.
-     SW-PGO is invoked as <code>--method sw_pgo</code> in the released scripts.</p>
-  <h3 style="font-size:1.0rem;margin:14px 0 6px">SW-PGO (sliding-window pose-graph optimization)</h3>
-  <table>
-    <tr><th>Factor</th><th style="text-align:left">Residual</th><th style="text-align:left">Weighting</th></tr>
-    <tr><td>UWB range</td>
-        <td style="text-align:left">‖p<sub>A</sub><sup>(i)</sup> − (p<sub>k</sub> + R<sub>k</sub> p<sub>T<sub>j</sub></sub><sup>B</sup>)‖ − y<sub>i,j,k</sub>, one per tag-anchor pair per keyframe</td>
-        <td style="text-align:left">Tukey loss (Ceres <code>TukeyLoss</code>), cutoff 3.0 on the raw range residual</td></tr>
-    <tr><td>IMU preintegration</td>
-        <td style="text-align:left">9-D on-manifold residual between consecutive keyframes: Δp, Δv (world frame, gravity-compensated) and Δq via the quaternion error</td>
-        <td style="text-align:left">Unit weight on Δp and Δv, rotation weight 6.0 on the vector part of Δq</td></tr>
-    <tr><td>Arrival prior</td>
-        <td style="text-align:left">Oldest keyframe of the window (previously committed pose, velocity, and quaternion)</td>
-        <td style="text-align:left">Held constant (fixed parameter blocks)</td></tr>
-  </table>
-  <p class="cap">Window of 15 keyframes on MILUV and NTU VIRAL and 20 on IULUI. The window length
-     is tuned per dataset like every other baseline setting, and on IULUI the longer window is
-     better on all three sequences — 0.248, 0.242, 0.327 m at 15 keyframes against 0.216, 0.215,
-     0.320 m at 20 — so SW-PGO is reported at its own best configuration rather than at one length
-     imposed across datasets. Quaternions live on the Eigen quaternion manifold, the problem is minimized by
-     Levenberg-Marquardt with a dense Schur solver, and after each solve the oldest state is
-     committed and the window slides by one keyframe. Covariances: UWB residuals are unweighted
-     inside the Tukey loss (cutoff 3.0 on the raw range residual in metres), and the IMU factor uses
-     unit weights on Δp and Δv with a rotation weight of 6.0.</p>
-  <h3 style="font-size:1.0rem;margin:14px 0 6px">Particle Smoothing</h3>
-  <p>Bootstrap particle filter with adaptive (ESS-triggered) systematic resampling and fixed-lag
-     smoothing over the particle genealogy, with <strong>10,000 particles</strong> matching the KIMS
-     rollout budget. On the Jetson Orin NX this costs 1.46 ms per epoch, well inside the 10 ms UWB
-     period, so the sample-matched setting is also the real-time-feasible one. The original
-     1,000-particle configuration is evaluated alongside it in the seed figure below; run it with
-     <code>num_particles:=1000</code>.</p>
-  <pre># reproduce every baseline number in the paper
-python3 scripts/run.py --method all --dataset all
+<section class="wrap">
+  <h2><span class="accent">&#9889;</span> Quick start</h2>
+  <pre># build (offline, no ROS needed)
+cmake -S . -B build -DKIMS_NO_ROS=ON &amp;&amp; cmake --build build -j8
 
-# any single method or sequence
-python3 scripts/run.py --method particle_smoothing --dataset iului
-python3 scripts/run.py --method kims --dataset iului --sequence CircleSpin</pre>
+# data: IULUI ships in data/iului; MILUV, NTU VIRAL and UTIL are fetched or converted
+scripts/prepare_data.sh miluv
+scripts/prepare_data.sh ntu &lt;dir with the NTU VIRAL zips&gt;
+scripts/prepare_data.sh util &lt;UTIL root&gt;
+
+# KIMS on all 104 sequences, then the tables
+scripts/reproduce.sh
+scripts/reproduce.sh miluv tables      # one dataset only</pre>
+  <p>Per-dataset instructions and the settings of every run are in the
+     <a style="color:var(--teal)" href="https://github.com/AM2TD/kims#readme">README</a>.</p>
 </section>
 
 <section id="paper" class="wrap">
-  <h2><span class="accent">✎</span> Paper</h2>
-  <p>Under review, IEEE Robotics and Automation Letters (RA-L), 2026. A citation entry will be
-     added here once the paper is publicly available.</p>
+  <h2><span class="accent">&#9998;</span> Paper</h2>
+  <p>Submitted to IEEE Robotics and Automation Letters (RA-L), 2026, revised version under review. A citation entry
+     will be added here once the paper is publicly available.</p>
 </section>
 
 <footer class="wrap">
-  MIT License · datasets redistributed under their upstream terms
+  MIT License &middot; datasets redistributed under their upstream terms
 </footer>
 
 <script>
@@ -369,7 +459,7 @@ python3 scripts/run.py --method kims --dataset iului --sequence CircleSpin</pre>
   var slides = document.querySelectorAll('.carousel .slide');
   var dots = document.querySelectorAll('.cdots button');
   var name = document.querySelector('.cname');
-  var names = ['CircleSpin', 'SquareBob', 'SquareTurn'];
+  var names = ['CoplanarSquareTurn', 'CoplanarCircleSpin', 'NoncoplanarCircleSpin'];
   var i = 0;
 
   function show(n) {
