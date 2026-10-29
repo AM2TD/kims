@@ -59,6 +59,13 @@
   pre{background:var(--panel);border:1px solid var(--line);border-radius:12px;
       padding:16px;overflow-x:auto;font-size:.85rem;color:#cfcfd6}
   footer{padding:40px 0 60px;color:var(--dim);font-size:.9rem;text-align:center}
+  .grid4{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+  .card .big{font-size:1.9rem;font-weight:800;color:var(--red);line-height:1.1;margin:6px 0 2px}
+  .card .vs{color:var(--dim);font-size:.86rem;margin-bottom:8px}
+  .card ul{margin:6px 0 0 18px;color:var(--dim);font-size:.9rem}
+  .card li{margin:4px 0}
+  .card li strong{color:var(--ink)}
+  @media(max-width:720px){.grid4{grid-template-columns:1fr}}
   details{margin:12px 0}
   summary{cursor:pointer;color:var(--teal);font-weight:600}
   .tscroll{overflow-x:auto}
@@ -185,9 +192,13 @@
      measurements of the leaving epoch only, so the carried covariance and the window cost never share a
      measurement.</p>
   <div class="figcard"><img src="assets/fig_pipeline.png" alt="KIMS pipeline"></div>
-  <p class="cap">One solve: UWB ranges and IMU inputs are accumulated (a), <em>N</em> window variables are drawn from
-     the proposal (b), each is propagated through the IMU kinematics from the window head (c), and the UWB residuals
-     with the prior-to-proposal ratio give importance weights whose moments form the estimate and the next proposal (d).</p>
+  <p class="cap">One solve over a window of <em>T</em> UWB epochs. (a) The ranges, the IMU input of every inter-epoch
+     interval and the arrival prior of the window head. (b) <em>N</em> window variables, each a start-state offset and a
+     four-term cosine correction of the input, drawn from the proposal. (c) Each rollout starts from the head offset by
+     its sample and integrates its corrected input through the IMU kinematics. (d) The range cost and the
+     prior-to-proposal ratio give the importance weights, tempered when the effective sample size is low, and their
+     moments form the estimate and the next proposal. Panels (b) to (d) show one CoplanarSquareTurn solve in mid-flight
+     with every eighth rollout, coloured by weight in (d).</p>
   <div class="figcard"><img src="assets/fig_window_shift.png" alt="One window shift" style="max-width:640px;margin:0 auto"></div>
   <p class="cap">One window shift. The leaving epoch updates the arrival prior of the new head (red); the weighted
      moments of this solve, moved by one epoch, become the next proposal (blue).</p>
@@ -207,36 +218,115 @@
 
 <section id="results" class="wrap">
   <h2><span class="accent">&#9636;</span> Results</h2>
-  <p>Median 3D position RMSE [m] over the sequences of each dataset. KIMS, the matched LM solver and
+  <p>104 real flights from four datasets, UWB ranges and IMU only, one setting per dataset. KIMS,
      <a style="color:var(--teal)" href="https://github.com/KIT-ISAS/SFUISE">SFUISE</a> (continuous-time spline
-     smoother, its authors' published configuration) are our runs on identical measurements; the dataset filters are
-     the values published with the datasets, the MILUV EKF with IMU, UWB <em>and a laser height sensor</em>
-     (Table 10 of the MILUV paper, &times;&radic;3) and the UTIL ESKF (Table 4 of the UTIL paper). Diverged runs
-     (RMSE above 100 m) rank above every finite value in the medians.</p>
-  <div class="tscroll"><table>
-    <tr><th>Dataset (sequences)</th><th>KIMS</th><th>Matched LM</th><th>SFUISE</th><th>Dataset filter</th></tr>
-    <tr><td>MILUV (13)</td><td class="best">0.135</td><td>0.197</td><td>0.704 <span class="small">(3 div.)</span></td><td>0.258 <span class="small">(EKF + height)</span></td></tr>
-    <tr><td>NTU VIRAL (9)</td><td class="best">0.435</td><td>0.633</td><td>2.537 <span class="small">(2 div.)</span></td><td>&mdash;</td></tr>
-    <tr><td>UTIL (79)</td><td>0.187</td><td>0.191</td><td class="best">0.184 <span class="small">(5 div.)</span></td><td>0.220 <span class="small">(ESKF)</span></td></tr>
-    <tr><td>IULUI (3)</td><td class="best">0.120</td><td>0.418</td><td>0.235</td><td>&mdash;</td></tr>
-  </table></div>
-  <p class="cap">Per sequence, KIMS is below the dataset filter on 13 of 13 MILUV and 78 of 79 UTIL flights, below SFUISE
-     on 13/13, 6/9, 33/79 and 2/3, and never above 100 m. On MILUV it is also below the same EKF with VINS-Fusion
-     visual-inertial odometry added (median 0.228 m, Table 11 of the MILUV paper) on 11 of 12 flights, with neither
-     camera nor height sensor. Orientation medians: MILUV 6.9&deg; (KIMS), 10.9&deg; (SFUISE), 8.7&deg; (EKF); IULUI
-     4.0&deg; against 14.3&deg;. The matched LM is never more accurate than KIMS by more than 1 cm and is less
-     accurate on 14 of the 104 sequences.
+     smoother, its authors' published configuration) and the filter released with each dataset are our runs on
+     identical measurements. 3D position RMSE of the committed estimate over the whole flight; the KIMS values on
+     MILUV, NTU VIRAL and IULUI are means over ten seeds per sequence.</p>
+  <div class="grid4">
+    <div class="card"><h3>MILUV &mdash; 13 flights, six anchors, two tags</h3>
+      <div class="big">0.135 m</div>
+      <div class="vs">median &middot; EKF with a laser height sensor 0.265 m &middot; SFUISE 0.704 m</div>
+      <ul>
+        <li><strong>Lowest position error on all 13 flights</strong>, with neither camera nor height sensor, and below
+            the same EKF with VINS-Fusion visual-inertial odometry added (0.228 m) on 11 of 12.</li>
+        <li>On the three fast <code>rcHighPace</code> flights KIMS stays at <strong>0.10&ndash;0.24 m</strong> where
+            the height-sensor EKF reaches 1.3&ndash;1.4 m and SFUISE diverges on two.</li>
+        <li>Horizontal error 5&ndash;7 cm on every flight; orientation 6.9&deg; against 10.9&deg; (SFUISE) and
+            8.7&deg; (EKF).</li>
+      </ul></div>
+    <div class="card"><h3>NTU VIRAL &mdash; 9 flights, three coplanar anchors at 1.5 m, four tags</h3>
+      <div class="big">0.559 m</div>
+      <div class="vs">median &middot; SFUISE 2.537 m, diverging on two flights</div>
+      <ul>
+        <li><strong>Horizontal RMSE 0.06&ndash;0.12 m</strong> on eight of nine sequences. The anchors lie in one
+            plane, so the height is weakly observable and the large errors are height errors on the mirror branch,
+            not drift.</li>
+        <li>Lower RMSE than SFUISE on six of nine, below 1 m on seven, <strong>never diverges</strong>.</li>
+      </ul></div>
+    <div class="card"><h3>UTIL &mdash; 79 flights, eight anchors, single tag, TDOA</h3>
+      <div class="big">0.187 m</div>
+      <div class="vs">median &middot; SFUISE 0.184 m &middot; dataset ESKF 0.217 m</div>
+      <ul>
+        <li><strong>On par with SFUISE</strong> (within 1 cm in median on constellations 1&ndash;3) and
+            <strong>never diverges</strong>, where SFUISE diverges on five flights; largest RMSE 0.595 m.</li>
+        <li>Below the dataset ESKF on <strong>78 of 79</strong> flights, and half its error on constellation 4
+            (0.258 against 0.473 m).</li>
+      </ul></div>
+    <div class="card"><h3>IULUI &mdash; our 3 flights, exactly coplanar (AC1) and spread (AC3) anchors</h3>
+      <div class="big">0.120 m</div>
+      <div class="vs">median &middot; SFUISE 0.235 m &middot; matched LM 0.418 m</div>
+      <ul>
+        <li>On the coplanar flights a <strong>Levenberg&ndash;Marquardt solver of the same objective</strong> drifts to
+            the mirror branch (0.548 and 0.418 m) while the sampler stays on the true branch
+            (<strong>0.120 and 0.118 m</strong>).</li>
+        <li>CoplanarCircleSpin at 2 m/s with continuous yaw spin: 0.118 m against 0.235 m for SFUISE; NoncoplanarCircleSpin
+            0.128 against 0.300 m. Orientation 4.0&deg; against 14.3&deg;.</li>
+      </ul></div>
+  </div>
+  <p class="cap">Across the 104 flights no KIMS run reaches the 100 m divergence criterion and only two (both on NTU
+     VIRAL) exceed 1 m RMSE; SFUISE diverges on ten. The matched LM is never more accurate than KIMS by more than
+     1 cm and is less accurate on 14 of the 104.
      <a style="color:var(--teal)" href="assets/per_sequence_xyz.pdf">Per-sequence x/y/z plots and RMSE of all 104
      sequences (PDF, 36 MB)</a>.</p>
 
-  <h3 style="font-size:1.0rem;margin:22px 0 6px">Divergence, large errors and mirror-branch tracking</h3>
-  <p>A run counts as diverged when its RMSE exceeds 100 m, far above the 3.2 m of the worst non-diverged run. The
-     practical failure threshold is 1 m. Mirror-branch tracking, an estimate nearer the mirrored than the true
-     ground truth while the vehicle is more than 0.25 m from the anchor plane, is reported apart because its error
-     can stay below 1 m: KIMS follows the mirror branch on <code>eee_03</code> and <code>nya_02</code> for 34 and
-     74&nbsp;% of the scored time (its two runs above 1 m), on <code>nya_01</code> and <code>nya_03</code> for
-     21&ndash;23&nbsp;%, and on three MILUV flights for 2&ndash;8&nbsp;%.</p>
   <div class="tscroll"><table>
+    <tr><th>Median 3D RMSE [m]</th><th>KIMS</th><th>SFUISE</th><th>Dataset filter</th></tr>
+    <tr><td>MILUV (13)</td><td class="best">0.135</td><td>0.704 <span class="small">(3 div.)</span></td><td>0.265 <span class="small">(EKF + height)</span></td></tr>
+    <tr><td>NTU VIRAL (9)</td><td class="best">0.559</td><td>2.537 <span class="small">(2 div.)</span></td><td>&mdash;</td></tr>
+    <tr><td>UTIL (79)</td><td>0.187</td><td class="best">0.184 <span class="small">(5 div.)</span></td><td>0.217 <span class="small">(ESKF)</span></td></tr>
+    <tr><td>IULUI (3)</td><td class="best">0.120</td><td>0.235</td><td>&mdash;</td></tr>
+  </table></div>
+  <p class="cap">Diverged runs (RMSE above 100 m) rank above every finite value in the medians. The MILUV filter is our
+     run of the EKF with IMU, UWB and a laser height sensor released with the dataset, started from the ground-truth
+     state; the UTIL filter is our run of the development-kit ESKF. Our runs reproduce the published values within
+     9 mm on MILUV and within 1 cm on most UTIL flights.</p>
+
+  <div class="figcard"><img src="assets/fig_traj_axes.png" alt="Per-axis trajectories on one sequence per dataset"></div>
+  <p class="cap">One sequence per dataset, per axis: KIMS, SFUISE and our runs of the dataset filter against the ground
+     truth (MILUV <code>random3_0</code>, NTU VIRAL <code>eee_01</code>, UTIL <code>const4-trial1-tdoa2-traj1</code>,
+     IULUI <code>CoplanarCircleSpin</code>; column titles give the 3D RMSE).</p>
+
+  <div class="figcard"><img src="assets/fig_z_crossings.png" alt="Altitude versus time on the coplanar flights"></div>
+  <p class="cap">Altitude on the flights with coplanar or nearly coplanar anchors. The dotted grey line is the ground
+     truth mirrored in the anchor plane (teal), the branch an estimator falls onto when it loses the side of the plane.
+     The IULUI flights cross the plane 6 and 14 times.</p>
+
+  <h3 style="font-size:1.0rem;margin:26px 0 6px">Why sampling: moments instead of modes</h3>
+  <p>The matched LM solver keeps everything of KIMS (window variable, prior, cost, GPU rollouts, proposal, window
+     shift) and replaces only the weighted samples by the mode and the Laplace approximation of the same objective.
+     Far from the anchor plane the two agree within 5 mm. Near a coplanar plane the window posterior of the head height
+     splits into two branches; the weighted moments keep both and the carried Gaussian reproduces the true-side mass
+     within 0.02 in median, whereas the Laplace Gaussian drops one branch in 30&nbsp;% of such windows. Once the lighter
+     branch is carried, the recursion returns only when later measurements outweigh the carried curvature.</p>
+  <div class="figcard"><img src="assets/fig_strip.png" alt="Posterior mass crossing the anchor plane" style="max-width:720px;margin:0 auto"></div>
+  <p class="cap">A crossing on CoplanarSquareTurn: the sampled posterior of the window-start height puts mass below
+     the anchor plane and the weighted mean follows within 1.5 s, while the LM iterates stay in the upper mode and the
+     Laplace cloud climbs onto the mirror branch.</p>
+  <details><summary>Single-window comparison with a common fixed prior</summary>
+  <p class="small">320 near-plane solves before the LM mirror episodes and 120 far from the plane, with the carried
+     prior and proposal held fixed, each solved by sampling (IS), by LM from the proposal mean and by LM from 15 other
+     starts. &Delta;&Phi; = objective of the LM mode minus that of the weighted mean (LM attains the lower objective);
+     mass error = how far the carried Gaussian misses the true-side posterior mass in the windows whose posterior keeps
+     both branches. A best of 16 LM starts improves on the proposal-mean start by more than 0.1 in only 1 %.</p>
+  <div class="tscroll"><table class="small">
+    <tr><th>Windows</th><th>n</th><th>Window RMSE IS / LM [m]</th><th>Lower by &gt;2 cm, IS / LM</th><th>&Delta;&Phi;</th><th>&gt;1 LM minimum</th><th>Mass error IS / LM</th></tr>
+    <tr><td>CoplanarSquareTurn</td><td>35</td><td>0.137 / 0.134</td><td>14 / 14 %</td><td>&minus;0.02</td><td>11 %</td><td>0.015 / 0.036</td></tr>
+    <tr><td>CoplanarCircleSpin</td><td>105</td><td>0.135 / 0.132</td><td>7 / 22 %</td><td>&minus;0.04</td><td>30 %</td><td>0.029 / 0.137</td></tr>
+    <tr><td>MILUV random3_0</td><td>90</td><td>0.321 / 0.352</td><td>34 / 0 %</td><td>&minus;0.11</td><td>16 %</td><td>0.014 / 0.058</td></tr>
+    <tr><td>MILUV obstacles</td><td>90</td><td>0.269 / 0.263</td><td>48 / 22 %</td><td>&minus;0.25</td><td>23 %</td><td>0.037 / 0.207</td></tr>
+    <tr><td>Far from the plane</td><td>120</td><td>0.071 / 0.071</td><td>0 / 0 %</td><td>&minus;0.03</td><td>2 %</td><td>&mdash;</td></tr>
+  </table></div>
+  </details>
+
+  <details><summary>Failure statistics: divergence, large errors and mirror-branch tracking</summary>
+  <p class="small">A run counts as diverged when its RMSE exceeds 100 m, far above the 3.2 m of the worst non-diverged
+     run; the practical failure threshold is 1 m. Mirror-branch tracking, an estimate nearer the mirrored than the true
+     ground truth while the vehicle is more than 0.25 m from the anchor plane, is reported apart because its error can
+     stay below 1 m: KIMS follows the mirror branch on <code>eee_03</code> and <code>nya_02</code> for 34 and 74 % of
+     the scored time (its two runs above 1 m), on <code>nya_01</code> and <code>nya_03</code> for 21&ndash;23 %, and on
+     three MILUV flights for 2&ndash;8 %.</p>
+  <div class="tscroll"><table class="small">
     <tr><th>Dataset</th><th>Method</th><th>Div.</th><th>&gt;1 m</th><th>Time &gt;1 m [%]</th><th>Longest [s]</th><th>Max [m]</th></tr>
     <tr><td>MILUV (13)</td><td>KIMS</td><td class="best">0</td><td class="best">0</td><td class="best">0.00</td><td class="best">0.0</td><td class="best">0.91</td></tr>
     <tr><td></td><td>SFUISE</td><td>3</td><td>1</td><td>5.92</td><td>25.9</td><td>5.55</td></tr>
@@ -249,63 +339,22 @@
     <tr><td>IULUI (3)</td><td>KIMS</td><td class="best">0</td><td class="best">0</td><td class="best">0.00</td><td class="best">0.0</td><td class="best">0.50</td></tr>
     <tr><td></td><td>SFUISE</td><td>0</td><td>0</td><td>0.00</td><td>0.0</td><td>0.65</td></tr>
   </table></div>
-  <p class="cap">Div.: runs with RMSE above 100 m. &gt;1 m: non-diverged runs with RMSE above 1 m. Time share
-     (pooled over the non-diverged runs), longest episode and largest error refer to 3D errors above 1 m. Filters are
-     our runs of the released code.</p>
-
-  <div class="figcard"><img src="assets/fig_traj_axes.png" alt="Per-axis trajectories on one sequence per dataset"></div>
-  <p class="cap">Per-axis trajectories of KIMS, SFUISE and the dataset filter (our runs) on one sequence per dataset,
-     MILUV <code>random3_0</code>, NTU VIRAL <code>eee_01</code>, UTIL <code>const4-trial1-tdoa2-traj1</code> and
-     IULUI <code>CoplanarCircleSpin</code>; the column titles give the 3D RMSE.</p>
+  <p class="cap">Div.: runs with RMSE above 100 m. &gt;1 m: non-diverged runs with RMSE above 1 m. Time share (pooled
+     over the non-diverged runs), longest episode and largest error refer to 3D errors above 1 m. Filters are our runs
+     of the released code.</p>
   <div class="figcard"><img src="assets/fig_boxplot.png" alt="Error distributions per dataset"></div>
   <p class="cap">Distribution of the per-sequence 3D RMSE on each dataset (box: quartiles, whiskers: range; diverged
      runs counted at the top).</p>
+  </details>
 
-  <div class="figcard"><img src="assets/fig_z_crossings.png" alt="Altitude versus time on the coplanar flights"></div>
-  <p class="cap">Altitude over the flights with coplanar or nearly coplanar anchors. The dotted grey line is the
-     ground truth mirrored in the anchor plane (teal). On the IULUI flights the vehicle crosses the plane 6 and 14
-     times; on MILUV constellation 1 the anchors lie within 1 cm of one height.</p>
-
-  <h3 style="font-size:1.0rem;margin:22px 0 6px">Sampling versus the matched LM solver</h3>
-  <p>To separate the inference step from the parameterization, the matched LM solver keeps the window variable,
-     the prior, the cost, the GPU rollouts, the proposal and the window shift of KIMS and replaces only the weighted
-     samples: it minimizes the same objective from the proposal mean (at most eight iterations, gradient and Hessian
-     from central finite differences over 1,123 of the same rollouts) and draws its samples from the Laplace
-     approximation. Over the 104 sequences it is never more accurate than KIMS by more than 1 cm and worse on 14,
-     and on the coplanar IULUI flights it stays on the mirror branch for 13 and 10&nbsp;% of the flight (KIMS 0.0 and
-     0.1&nbsp;%), which accounts for the whole gap (0.548 against 0.120 m, 0.418 against 0.118 m). With the same
-     rollouts it takes 12.7 ms per MILUV epoch against 9.0 ms for KIMS.</p>
-  <p>Single windows with the carried prior and proposal held fixed, 320 near-plane solves before the LM mirror
-     episodes and 120 far from the plane, each solved by sampling (IS), by LM from the proposal mean and by LM from
-     15 other starts:</p>
-  <div class="tscroll"><table>
-    <tr><th>Windows</th><th>n</th><th>Window RMSE IS / LM [m]</th><th>Lower by &gt;2 cm, IS / LM</th><th>&Delta;&Phi;</th><th>&gt;1 LM minimum</th><th>Mass error IS / LM</th></tr>
-    <tr><td>CoplanarSquareTurn</td><td>35</td><td>0.137 / 0.134</td><td>14 / 14 %</td><td>&minus;0.02</td><td>11 %</td><td>0.015 / 0.036</td></tr>
-    <tr><td>CoplanarCircleSpin</td><td>105</td><td>0.135 / 0.132</td><td>7 / 22 %</td><td>&minus;0.04</td><td>30 %</td><td>0.029 / 0.137</td></tr>
-    <tr><td>MILUV random3_0</td><td>90</td><td>0.321 / 0.352</td><td>34 / 0 %</td><td>&minus;0.11</td><td>16 %</td><td>0.014 / 0.058</td></tr>
-    <tr><td>MILUV obstacles</td><td>90</td><td>0.269 / 0.263</td><td>48 / 22 %</td><td>&minus;0.25</td><td>23 %</td><td>0.037 / 0.207</td></tr>
-    <tr><td>Far from the plane</td><td>120</td><td>0.071 / 0.071</td><td>0 / 0 %</td><td>&minus;0.03</td><td>2 %</td><td>&mdash;</td></tr>
-  </table></div>
-  <p class="cap">&Delta;&Phi; = objective of the LM mode minus that of the weighted mean (LM attains the lower
-     objective). Mass error: how far the carried Gaussian misses the true-side posterior mass at the newest epoch
-     in the windows whose posterior keeps both branches, moment matching (IS) against the Laplace Gaussian (LM).
-     The Laplace Gaussian is off by more than 0.1 in 43 % of those windows and drops one branch in 30 %; a best of
-     16 LM starts improves on the proposal-mean start by more than 0.1 in only 1 %.</p>
-  <div class="figcard"><img src="assets/fig_strip.png" alt="Posterior mass crossing the anchor plane" style="max-width:720px;margin:0 auto"></div>
-  <p class="cap">A crossing on CoplanarSquareTurn: the sampled posterior of the window-start height puts mass below
-     the anchor plane and the weighted mean follows within 1.5 s, while the LM iterates stay in the upper mode and
-     the Laplace cloud climbs to the mirror branch.</p>
-
-  <div class="figcard"><img src="assets/fig_sensitivity.png" alt="Rollout-count sensitivity" style="max-width:760px;margin:0 auto"></div>
-  <p class="cap">Rollout count. (a) Median RMSE against <em>N</em>: flat from 2,048 to 16,384, and below 1,024 the
-     first pass collapses on MILUV and IULUI so the tempering passes make the solve slower, not faster.
-     (b) Solve time per epoch on CoplanarSquareTurn, desktop GPU and Jetson Orin NX, dotted line at the 10 ms epoch
-     interval.</p>
-
+  <details><summary>Random seeds</summary>
+  <p class="small">The rollout count is studied in the <a style="color:var(--teal)" href="#timing">computation
+     section</a>: accuracy is flat from <em>N</em> = 1,024 upward and the solve time grows with <em>N</em>.</p>
   <div class="figcard"><img src="assets/fig_seeds.png" alt="Seed repetition"></div>
   <p class="cap">Ten random seeds on 33 sequences. The RMSE spans 0.41&ndash;0.87 m on <code>sbs_02</code> and
      0.86&ndash;0.90 m on <code>nya_03</code>, where the branch near the mirror is decided by the seed, and stays
      within 7 mm on the other 31. Bottom: share of time on the mirror side per seed on the coplanar flights.</p>
+  </details>
 </section>
 
 <section class="wrap">
@@ -331,32 +380,21 @@
 
 <section id="timing" class="wrap">
   <h2><span class="accent">&#9201;</span> Computation time and latency</h2>
-  <p>Per-epoch solve time of KIMS at <em>N</em> = 8,192 with FP32 rollouts and eight host threads, one process at a
-     time, on a desktop GPU (RTX 5070 Ti with an i7-14700K, mean / median / p95) and onboard a Jetson Orin NX
-     (MAXN, clocks fixed, JetPack 5.1.2, median). The epoch interval is the mean spacing of the UWB epochs of each dataset.</p>
-  <div class="tscroll"><table>
-    <tr><th>Dataset</th><th>Epoch [ms]</th><th>Desktop mean / median / p95 [ms]</th><th>&gt; interval</th><th>Jetson median [ms]</th><th>&gt; interval</th><th>Lag</th><th>RMSE committed / lag-0 [m]</th></tr>
-    <tr><td>MILUV</td><td>14.4</td><td>8.7 / 5.2 / 20.7</td><td>6.1 %</td><td>37.3</td><td>100 %</td><td>3 s</td><td>0.135 / 0.212</td></tr>
-    <tr><td>NTU VIRAL</td><td>16.5</td><td>3.8 / 3.8 / 3.9</td><td>0.0 %</td><td>23.6</td><td>100 %</td><td>2 s</td><td>0.435 / 0.456</td></tr>
-    <tr><td>UTIL</td><td>20.0</td><td>5.4 / 4.2 / 10.1</td><td>1.2 %</td><td>26.8</td><td>100 %</td><td>2 s</td><td>0.187 / 0.204</td></tr>
-    <tr><td>IULUI</td><td>10.0</td><td>5.3 / 5.3 / 5.4</td><td>0.0 %</td><td>35.2</td><td>100 %</td><td>2 s</td><td>0.120 / 0.152</td></tr>
-  </table></div>
-  <p><strong>Desktop.</strong> The mean solve time is below the epoch interval on every dataset. On MILUV the
-     tempered solves form a tail that arrives in bursts, and a first-in-first-out replay delays some estimates by up
-     to 2.1 s.</p>
-  <p><strong>Jetson Orin NX.</strong> The same runs reproduce the desktop trajectories within 3 cm, but one sampling
-     pass takes 24&ndash;39 ms, five to seven times the desktop, so at <em>N</em> = 8,192 the median solve exceeds the epoch
-     interval on every dataset by 1.3&ndash;3.5 times. A smaller <em>N</em> does not close the gap: on
-     CoplanarSquareTurn the Jetson time is lowest at <em>N</em> = 2,048 with a median of 10.9 ms against the 10 ms interval,
-     on MILUV and UTIL <em>N</em> = 2,048 is slower than 8,192 through extra tempering, and only NTU VIRAL keeps up
-     at <em>N</em> = 2,048 (7.8 against 17 ms). KIMS therefore sustains the sensor rate on the desktop GPU, and we
-     claim no onboard real-time operation at the final settings.</p>
-  <div class="figcard"><img src="assets/fig_jetson_nsweep.png" alt="Jetson solve time against N" style="max-width:620px;margin:0 auto"></div>
-  <p class="cap">Median solve time per epoch on the Jetson Orin NX against the rollout count on CoplanarSquareTurn.</p>
-  <p><strong>Two latencies.</strong> The times above are the cost of producing one solve. Separate from it is the
+  <p>Solve time per epoch is measured on IULUI, whose 10 ms epoch interval is the shortest of the four datasets, one
+     process at a time on a Jetson Orin NX (MAXN, clocks fixed) with FP32 rollouts and eight host threads.</p>
+  <div class="figcard"><img src="assets/fig_nsweep_jetson.png" alt="Jetson solve time and RMSE against N" style="max-width:680px;margin:0 auto"></div>
+  <p class="cap">Solve time per epoch on the Jetson Orin NX against the rollout count on CoplanarSquareTurn: boxes the
+     quartiles, whiskers 1.5 interquartile ranges, dotted line the 10 ms epoch interval, right axis the RMSE of the
+     same runs.</p>
+  <p><strong>Rollout count.</strong> At <em>N</em> = 8,192 the median solve takes 22.8 ms. The RMSE is flat from
+     <em>N</em> = 1,024 upward, whereas at <em>N</em> &le; 1,024 the first pass collapses on part of the solves and the
+     tempering passes make the solve slower. From <em>N</em> = 1,280 to 2,560 the median stays below the epoch
+     interval, 6.0&ndash;9.6 ms, with the RMSE of <em>N</em> = 8,192, so real-time operation on the Jetson means
+     staying in this range of <em>N</em> or shortening the window, whose length sets the cost of every rollout.</p>
+  <p><strong>Two latencies.</strong> The time above is the cost of producing one solve. Separate from it is the
      estimation latency of fixed-lag smoothing: the committed state is the oldest one in the window, so it trails
-     the newest measurement by 2&ndash;3 s. The newest state of the window is available at every solve as a lag-0
-     output, at the RMSE in the last column.</p>
+     the newest measurement by the window length of 2&ndash;3 s. The newest state of the window is available at
+     every solve as a lag-0 output.</p>
 </section>
 
 <section id="sfuise" class="wrap">
@@ -413,14 +451,14 @@
   </table></div>
   </details>
   <p><strong>Dataset filters.</strong> The MILUV EKF additionally uses a laser height sensor and starts from the
-     ground-truth state; the UTIL ESKF is the development-kit filter. Both are quoted as published, and our runs of
-     the released code, used for the per-epoch statistics, match the published RMSE within 1 cm on MILUV and are
-     within 5 mm or lower on UTIL (median 0.217 against 0.220 m).</p>
+     ground-truth state; the UTIL ESKF is the development-kit filter. Both are our runs of the released code, which
+     reproduce the published RMSE within 9 mm on MILUV and within 1 cm on most UTIL flights (median 0.217 against
+     the published 0.220 m).</p>
   <p><strong>Common protocol.</strong> All methods share the same sensor streams and extrinsics and start from the
      same pose: the tilt from gravity alignment at rest, zero yaw except on NTU VIRAL (rest-phase estimate), and the
      take-off position from the anchor-frame origin (MILUV), the first ground-truth sample (IULUI, NTU VIRAL
-     <code>eee</code>), the development-kit start (UTIL) or a rest-phase range fit below the anchor plane
-     (NTU VIRAL <code>nya</code>, <code>sbs</code>). The 3D RMSE of the committed output is scored over the whole
+     <code>eee</code>), the development-kit start (UTIL) or a rest-phase range fit (NTU VIRAL <code>nya</code>,
+     <code>sbs</code>). The 3D RMSE of the committed output is scored over the whole
      ground-truth span without alignment, except on NTU VIRAL, whose Leica frame is not surveyed in the anchor frame:
      there the prism point is aligned by a yaw-and-translation fit and scored 10 s from both ends. The earlier
      in-repository baselines (EKF-RTS, UKF-RTS, sliding-window pose-graph optimization, particle smoothing) remain
