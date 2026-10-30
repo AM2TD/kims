@@ -117,7 +117,7 @@
   </div>
   <p class="cap">
     The sampler on real footage. At every UWB epoch KIMS draws 8,192 window variables and rolls each one through
-    the IMU kinematics over the 2 s window. 200 of them are projected into the arena camera and coloured by
+    the IMU kinematics over the 2 s window. 200 of them are projected into the arena camera and colored by
     importance weight; the dot is the lag-0 estimate. Each IULUI flight runs from 4 s before take-off to touchdown
     in real time, with the original sound.
     <span class="cname">CoplanarSquareTurn</span>
@@ -175,11 +175,13 @@
 
 <section class="wrap">
   <h2><span class="accent">&#9670;</span> What KIMS does</h2>
-  <p>UWB ranges do not drift, but their errors are heavy-tailed. Non-line-of-sight delays and per-link biases
-     persist for seconds. Anchors are also usually mounted at similar heights, so near the anchor plane the ranges
-     say little about the height above it. With exactly coplanar anchors the window cost has two mirror-symmetric
-     minima, and whatever an estimator carries from one window to the next, the mode and curvature of an optimizer
-     or the single Gaussian of a filter, decides which of the two it follows.</p>
+  <p>UWB ranges do not drift, but two properties of UWB-IMU data make the posterior of a sliding window non-Gaussian.
+     Range errors are heavy-tailed, with non-line-of-sight delays and per-link biases that persist for seconds, and
+     anchors are usually mounted at similar heights, so near the anchor plane the ranges constrain the height above
+     it only weakly. With exactly coplanar anchors the posterior can even split into two mirror-symmetric branches,
+     the flip ambiguity of range-based localization. An estimator that carries each window into the next as a mode
+     with its curvature describes such a posterior by one local fit, and near the plane by only the branch its
+     iteration reached.</p>
   <p>KIMS treats one window as a sampling problem in the form of <strong>model predictive path integral
      control</strong>. The sampled <strong>window variable</strong> has 33 dimensions whatever the window length:
      an offset of the window-start state (position, velocity, attitude) and four cosine coefficients per IMU channel
@@ -197,15 +199,16 @@
      sample and integrates its corrected input through the IMU kinematics. (d) Range cost and prior-to-proposal ratio
      give the importance weights, tempered when the effective sample size is low. Their moments form the estimate and
      the next proposal. Panels (b) to (d) show one CoplanarSquareTurn solve in mid-flight with every eighth rollout,
-     coloured by weight in (d).</p>
+     colored by weight in (d).</p>
   <div class="grid">
     <div class="card"><h3>Kinematics-constrained</h3>
       <p>Every rollout is an IMU integration with a smooth input correction. The sampled dimension is 33 whether the
          window holds 100 or 230 UWB epochs.</p></div>
     <div class="card"><h3>Moments, not modes</h3>
-      <p>The weighted mean and covariance keep both branches of a posterior that splits near a coplanar anchor plane.
-         A Levenberg&ndash;Marquardt solver of the same objective carries the mode and its curvature instead, and drops
-         one branch in 30&nbsp;% of those windows.</p></div>
+      <p>The weighted mean and covariance carry a posterior that splits near a coplanar anchor plane with the spread
+         between its branches. A Levenberg&ndash;Marquardt solver of the same objective carries the mode and its
+         curvature instead and, after a plane crossing, stays on the mirror branch for 10 to 13&nbsp;% of the
+         coplanar IULUI flights.</p></div>
     <div class="card"><h3>Reproducible</h3>
       <p>Code, the IULUI flights and <code>scripts/reproduce.sh</code>, which reruns all 104 sequences of MILUV,
          NTU VIRAL, UTIL and IULUI. Offline, no ROS.</p></div>
@@ -228,8 +231,9 @@
             the same EKF with VINS-Fusion odometry added (0.228 m) on 11 of them.</li>
         <li>On the three fast <code>rcHighPace</code> flights KIMS stays at <strong>0.10 to 0.24 m</strong> where
             the height-sensor EKF reaches 1.3 to 1.4 m and SFUISE diverges on two.</li>
-        <li>Horizontal error 5 to 7 cm on every flight. Orientation 6.9&deg; against 10.9&deg; for SFUISE and
-            8.7&deg; for the EKF.</li>
+        <li>Orientation 6.9&deg;, of which 4.0&deg; is tilt and 5.4&deg; heading, against 8.7&deg; for the EKF, which
+            starts from the ground-truth attitude, and 10.9&deg; for SFUISE. KIMS follows the mirror branch for
+            2 to 8 % of the time on three flights whose RMSE stays below 0.24 m.</li>
       </ul></div>
     <div class="card"><h3>NTU VIRAL &mdash; 9 flights, three coplanar anchors at 1.5 m, four tags</h3>
       <div class="big">0.559 m</div>
@@ -239,15 +243,20 @@
             plane, so the height is weakly observable, and the large errors are height errors on the mirror branch
             rather than drift.</li>
         <li>Lower RMSE than SFUISE on six of nine, below 1 m on seven, and <strong>never diverges</strong>.</li>
+        <li>KIMS tracks the mirror branch for 34 and 74 % of the time on <code>eee_03</code> and <code>nya_02</code>,
+            its two runs above 1 m, and for 21 to 23 % on <code>nya_01</code> and <code>nya_03</code>, whose RMSE
+            stays at 0.79 and 0.88 m.</li>
       </ul></div>
     <div class="card"><h3>UTIL &mdash; 79 flights, eight anchors, single tag, TDOA</h3>
       <div class="big">0.187 m</div>
       <div class="vs">median &middot; SFUISE 0.184 m &middot; dataset ESKF 0.217 m</div>
       <ul>
         <li><strong>On par with SFUISE</strong>, within 1 cm in median on constellations 1 to 3, and
-            <strong>never diverges</strong> where SFUISE diverges on five flights. Largest RMSE 0.595 m.</li>
-        <li>Below the dataset ESKF on <strong>78 of 79</strong> flights, with half its error on constellation 4
-            (0.258 against 0.473 m).</li>
+            <strong>never diverges</strong> where SFUISE diverges on five flights and exceeds 1 m on a sixth.
+            SFUISE is 3 cm lower on constellation 4, a horizontal gap of 0.080 against 0.056 m with equal
+            vertical error.</li>
+        <li>Below the dataset ESKF on <strong>78 of 79</strong> flights. Orientation 3.1&deg; against 3.3&deg; for
+            the ESKF and 13.4&deg; for SFUISE. With one tag the heading is observable only through the IMU.</li>
       </ul></div>
     <div class="card"><h3>IULUI &mdash; our 3 flights, exactly coplanar (AC1) and spread (AC3) anchors</h3>
       <div class="big">0.120 m</div>
@@ -256,89 +265,92 @@
         <li>On the coplanar flights a <strong>Levenberg&ndash;Marquardt solver of the same objective</strong> drifts
             onto the mirror branch (0.548 and 0.418 m) while the sampler stays on the true branch
             (<strong>0.120 and 0.118 m</strong>).</li>
-        <li>CoplanarCircleSpin at 2 m/s with continuous yaw spin: 0.118 m against 0.235 m for SFUISE.
-            NoncoplanarCircleSpin 0.128 against 0.300 m. Orientation 4.0&deg; against 14.3&deg;.</li>
+        <li>SFUISE is 1.4 cm lower on CoplanarSquareTurn but reaches 0.235 and 0.300 m on the two spinning
+            flights, where KIMS is at 0.118 and 0.128 m with orientation 4.0&deg; and 3.4&deg; against
+            14.3&deg; and 18.8&deg;. The coplanar layout costs KIMS less than 1 cm against the same flight with
+            spread anchors.</li>
       </ul></div>
   </div>
-  <p class="cap">Across the 104 flights no KIMS run reaches the 100 m divergence criterion and only two, both on NTU
-     VIRAL, exceed 1 m RMSE. SFUISE diverges on ten. The matched LM is never more accurate than KIMS by more than
+  <p class="cap">A run counts as diverged when its RMSE exceeds 100 m and as failed when it exceeds 1 m. Across the
+     104 flights no KIMS run diverges and only two, both on NTU VIRAL, fail. SFUISE diverges on ten and fails on 16,
+     and the dataset filters fail on 3 of 92. The matched LM is never more accurate than KIMS by more than
      1 cm and is less accurate on 14 of the 104.
      <a style="color:var(--teal)" href="assets/per_sequence_xyz.pdf">Per-sequence x/y/z plots and RMSE of all 104
      sequences (PDF, 36 MB)</a>.</p>
 
   <div class="tscroll"><table>
-    <tr><th>Median 3D RMSE [m]</th><th>KIMS</th><th>SFUISE</th><th>Dataset filter</th></tr>
-    <tr><td>MILUV (13)</td><td class="best">0.135</td><td>0.704 <span class="small">(3 div.)</span></td><td>0.265 <span class="small">(EKF + height)</span></td></tr>
-    <tr><td>NTU VIRAL (9)</td><td class="best">0.559</td><td>2.537 <span class="small">(2 div.)</span></td><td>&mdash;</td></tr>
-    <tr><td>UTIL (79)</td><td>0.187</td><td class="best">0.184 <span class="small">(5 div.)</span></td><td>0.217 <span class="small">(ESKF)</span></td></tr>
-    <tr><td>IULUI (3)</td><td class="best">0.120</td><td>0.235</td><td>&mdash;</td></tr>
+    <tr><th>Median 3D RMSE [m]</th><th>KIMS</th><th>Matched LM</th><th>SFUISE</th><th>Dataset filter</th></tr>
+    <tr><td>MILUV (13)</td><td class="best">0.135</td><td>0.197</td><td>0.704 <span class="small">(3 div.)</span></td><td>0.265 <span class="small">(EKF + height)</span></td></tr>
+    <tr><td>NTU VIRAL (9)</td><td class="best">0.559</td><td>0.633</td><td>2.537 <span class="small">(2 div.)</span></td><td>&mdash;</td></tr>
+    <tr><td>UTIL (79)</td><td>0.187</td><td>0.191</td><td class="best">0.184 <span class="small">(5 div.)</span></td><td>0.217 <span class="small">(ESKF)</span></td></tr>
+    <tr><td>IULUI (3)</td><td class="best">0.120</td><td>0.418</td><td>0.235</td><td>&mdash;</td></tr>
   </table></div>
   <p class="cap">Diverged runs (RMSE above 100 m) rank above every finite value in the medians. The MILUV filter is our
      run of the EKF released with the dataset, which uses IMU, UWB and a laser height sensor and starts from the
      ground-truth state. The UTIL filter is our run of the development-kit ESKF. Our runs reproduce the published
-     values within 9 mm on MILUV and within 1 cm on most UTIL flights.</p>
+     values within 9 mm on MILUV and within 1 cm on most UTIL flights. The matched LM is the Levenberg&ndash;Marquardt optimizer of the same window
+     objective, which carries each window as a mode with its curvature.</p>
+
+  <h3 style="font-size:1.0rem;margin:26px 0 6px">Baselines with the same loss</h3>
+  <p>To find where the robustness of KIMS comes from, three estimators take its Tukey loss together with its window,
+     range standard deviation, IMU noise densities, bias prior and start state, and differ from it only in enforcing
+     the IMU kinematics as a penalty or in sampling the states instead of the window variable. SW-PGO is a
+     sliding-window pose-graph optimization with a node per ranging epoch, the kinematics as penalties and one bias
+     per window, solved by Ceres. SFUISE replaces its gate by the Tukey weight, and the bootstrap particle filter (PF)
+     propagates 8,192 particles through the measured IMU, once with the process noise of the densities and once with
+     ten times that noise.</p>
+  <div class="tscroll"><table class="small">
+    <tr><th>Median 3D RMSE [m] (diverged/failed)</th><th>MILUV (13)</th><th>NTU VIRAL (9)</th><th>UTIL (8)</th><th>IULUI (3)</th></tr>
+    <tr><td>KIMS</td><td class="best">0.135 (0/0)</td><td>0.559 (0/2)</td><td>0.130 (0/0)</td><td class="best">0.120 (0/0)</td></tr>
+    <tr><td>LM, same objective</td><td>0.197 (0/0)</td><td>0.633 (0/2)</td><td>0.130 (0/0)</td><td>0.418 (0/0)</td></tr>
+    <tr><td>SFUISE, 0.3 m gate</td><td>0.704 (3/4)</td><td>2.537 (2/6)</td><td>0.125 (0/0)</td><td>0.235 (0/0)</td></tr>
+    <tr><td>SFUISE + Tukey</td><td>3.483 (0/10)</td><td>7.607 (0/9)</td><td class="best">0.122 (0/0)</td><td>0.242 (0/0)</td></tr>
+    <tr><td>SW-PGO + Tukey</td><td>0.186 (2/2)</td><td class="best">0.494 (0/3)</td><td>0.124 (0/0)</td><td>0.404 (0/0)</td></tr>
+    <tr><td>SW-PGO, no robust loss</td><td>0.625 (0/2)</td><td>4.184 (0/9)</td><td>0.124 (0/0)</td><td>0.499 (0/0)</td></tr>
+    <tr><td>PF + Tukey</td><td>div. (13/13)</td><td>div. (9/9)</td><td>0.197 (1/2)</td><td>div. (3/3)</td></tr>
+    <tr><td>PF + Tukey, 10&times; noise</td><td>div. (7/7)</td><td>2.560 (3/6)</td><td>0.132 (0/0)</td><td>0.477 (0/0)</td></tr>
+  </table></div>
+  <p class="cap">UTIL here is the first trial of each constellation in both TDoA modes, eight flights. On UTIL, where no
+     flight nears a mirror configuration, every estimator except the PF with the process noise of the densities is
+     within 1 cm of KIMS, so there the robust loss alone suffices. On MILUV SW-PGO with the Tukey loss has the lowest
+     median after KIMS but diverges on two flights. On NTU VIRAL it has the lowest median of all, stays off the mirror
+     branch on <code>nya_02</code>, which KIMS and LM both follow, and fails on <code>sbs_02</code> and
+     <code>nya_03</code>, where KIMS does not. Without the robust loss its medians rise on every dataset but UTIL,
+     but it no longer diverges, since a quadratic loss keeps pulling at any distance. SFUISE with the Tukey weight no
+     longer diverges but fails on 10 of the 13 MILUV flights and on every NTU VIRAL flight, because the ranges that
+     the gate rejected now bend the spline from inside the cut. Two conclusions follow. The window variable by itself
+     does not raise the accuracy, since LM, which optimizes it with the same loss, is not more accurate than SW-PGO in
+     median on any dataset, so the margin of KIMS over both comes from the sampling and the carried moments. The
+     window variable with its prior does keep the estimate on a path the IMU can explain, since neither KIMS nor LM
+     ever diverges, whereas an estimator over the states can drift further than the cut from the ranges, where the
+     bounded loss gives no pull and nothing brings it back, as the particle filter does on every flight.</p>
 
   <div class="figcard"><img src="assets/fig_traj_axes.png" alt="Per-axis trajectories on one sequence per dataset"></div>
   <p class="cap">One sequence per dataset, per axis: KIMS, SFUISE and our runs of the dataset filter against the ground
      truth (MILUV <code>random3_0</code>, NTU VIRAL <code>eee_01</code>, UTIL <code>const4-trial1-tdoa2-traj1</code>,
      IULUI <code>CoplanarCircleSpin</code>; column titles give the 3D RMSE).</p>
 
-  <div class="figcard"><img src="assets/fig_z_crossings.png" alt="Altitude versus time on the coplanar flights"></div>
-  <p class="cap">Altitude on the flights with coplanar or nearly coplanar anchors. The dotted grey line is the ground
-     truth mirrored in the anchor plane (teal), the branch an estimator falls onto when it loses the side of the plane.
-     The IULUI flights cross the plane 6 and 14 times.</p>
+  
 
   <h3 style="font-size:1.0rem;margin:26px 0 6px">Why sampling: moments instead of modes</h3>
-  <p>The matched LM solver keeps everything else of KIMS (window variable, prior, cost, GPU rollouts, proposal,
-     window shift) and replaces the weighted samples by the mode and the Laplace approximation of the same objective.
-     Far from the anchor plane the two agree within 5 mm. Near a coplanar plane the posterior of the head height splits
-     into two branches. The weighted moments keep both, and the carried Gaussian reproduces the mass on the true side
-     within 0.02 in median, whereas the Laplace Gaussian drops one branch in 30&nbsp;% of such windows. Once the lighter
-     branch has been carried, the recursion only comes back when later measurements outweigh the carried curvature.</p>
-  <div class="figcard"><img src="assets/fig_strip.png" alt="Posterior mass crossing the anchor plane" style="max-width:720px;margin:0 auto"></div>
-  <p class="cap">A crossing on CoplanarSquareTurn. The sampled posterior of the window-start height puts mass below
-     the anchor plane and the weighted mean follows within 1.5 s. The LM iterates stay in the upper mode and the
-     Laplace cloud climbs onto the mirror branch.</p>
-  <details><summary>Single-window comparison with a common fixed prior</summary>
-  <p class="small">320 near-plane solves before the LM mirror episodes and 120 far from the plane, each with the
-     carried prior and proposal held fixed and solved three ways: by sampling (IS), by LM from the proposal mean, and
-     by LM from 15 other starts. &Delta;&Phi; is the objective of the LM mode minus that of the weighted mean, so LM
-     reaches the lower objective. The mass error is how far the carried Gaussian misses the true-side posterior mass
-     in the windows whose posterior keeps both branches. The best of 16 LM starts improves on the proposal-mean start
-     by more than 0.1 in only 1 % of the windows.</p>
-  <div class="tscroll"><table class="small">
-    <tr><th>Windows</th><th>n</th><th>Window RMSE IS / LM [m]</th><th>Lower by &gt;2 cm, IS / LM</th><th>&Delta;&Phi;</th><th>&gt;1 LM minimum</th><th>Mass error IS / LM</th></tr>
-    <tr><td>CoplanarSquareTurn</td><td>35</td><td>0.137 / 0.134</td><td>14 / 14 %</td><td>&minus;0.02</td><td>11 %</td><td>0.015 / 0.036</td></tr>
-    <tr><td>CoplanarCircleSpin</td><td>105</td><td>0.135 / 0.132</td><td>7 / 22 %</td><td>&minus;0.04</td><td>30 %</td><td>0.029 / 0.137</td></tr>
-    <tr><td>MILUV random3_0</td><td>90</td><td>0.321 / 0.352</td><td>34 / 0 %</td><td>&minus;0.11</td><td>16 %</td><td>0.014 / 0.058</td></tr>
-    <tr><td>MILUV obstacles</td><td>90</td><td>0.269 / 0.263</td><td>48 / 22 %</td><td>&minus;0.25</td><td>23 %</td><td>0.037 / 0.207</td></tr>
-    <tr><td>Far from the plane</td><td>120</td><td>0.071 / 0.071</td><td>0 / 0 %</td><td>&minus;0.03</td><td>2 %</td><td>&mdash;</td></tr>
-  </table></div>
-  </details>
+  <p>The matched LM solver keeps everything else of KIMS, the window variable, prior, cost, GPU rollouts, proposal
+     and window shift, and replaces the weighted samples by the mode of the same objective and its Laplace
+     approximation. The two agree while the window posterior is a single Gaussian branch and differ when it splits
+     near a coplanar anchor plane. The sample moments rank the branches by their mass and keep the spread between
+     them, whereas the Laplace approximation describes only the branch the iteration reached, and since the carried
+     summary becomes the next proposal, a recursion that has carried the lighter branch returns only when later
+     measurements outweigh the carried curvature. Over the 104 sequences LM is never more accurate than KIMS by more
+     than 1 cm and is less accurate by more than 1 cm on 14. Most of the gap sits on the four flights below, where LM
+     is worse by 0.30 to 0.52 m, whereas on NTU VIRAL both solvers follow the mirror branch on the same sequences for
+     about the same time. Solving the same windows from a common fixed prior isolates the cause. The head states of
+     the two solvers then agree within 5.5 mm far from the plane and within 3 mm in median near it, where LM even
+     reaches the lower objective, so the difference lies in what is carried to the next window.</p>
+  <div class="figcard"><img src="assets/fig_lm_mirror.png" alt="Height of KIMS and LM on the four flights where they differ" style="max-width:720px;margin:0 auto"></div>
+  <p class="cap">Height of KIMS and LM over time on the four flights where they differ, with the ground truth (dashed),
+     its reflection in the anchor plane (dotted) and the plane itself (dash-dot). After a crossing LM stays on the
+     mirrored side, whereas KIMS returns to the true side.</p>
 
-  <details><summary>Failure statistics: divergence, large errors and mirror-branch tracking</summary>
-  <p class="small">A run counts as diverged when its RMSE exceeds 100 m, far above the 3.2 m of the worst
-     non-diverged run, and as failed above 1 m. Mirror-branch tracking, an estimate nearer the mirrored than the true
-     ground truth while the vehicle is more than 0.25 m from the anchor plane, is listed separately because its error
-     can stay below 1 m. KIMS follows the mirror branch on <code>eee_03</code> and <code>nya_02</code> for 34 and 74 %
-     of the scored time (its two runs above 1 m), on <code>nya_01</code> and <code>nya_03</code> for 21 to 23 %, and
-     on three MILUV flights for 2 to 8 %.</p>
-  <div class="tscroll"><table class="small">
-    <tr><th>Dataset</th><th>Method</th><th>Div.</th><th>&gt;1 m</th><th>Time &gt;1 m [%]</th><th>Longest [s]</th><th>Max [m]</th></tr>
-    <tr><td>MILUV (13)</td><td>KIMS</td><td class="best">0</td><td class="best">0</td><td class="best">0.00</td><td class="best">0.0</td><td class="best">0.91</td></tr>
-    <tr><td></td><td>SFUISE</td><td>3</td><td>1</td><td>5.92</td><td>25.9</td><td>5.55</td></tr>
-    <tr><td></td><td>EKF + height</td><td>0</td><td>3</td><td>2.01</td><td>5.6</td><td>32.2</td></tr>
-    <tr><td>NTU VIRAL (9)</td><td>KIMS</td><td class="best">0</td><td class="best">2</td><td class="best">21.3</td><td>165.6</td><td class="best">5.32</td></tr>
-    <tr><td></td><td>SFUISE</td><td>2</td><td>4</td><td>36.7</td><td>158.2</td><td>9.25</td></tr>
-    <tr><td>UTIL (79)</td><td>KIMS</td><td class="best">0</td><td class="best">0</td><td class="best">0.17</td><td>4.1</td><td>2.22</td></tr>
-    <tr><td></td><td>SFUISE</td><td>5</td><td>1</td><td>0.43</td><td>6.4</td><td>8.94</td></tr>
-    <tr><td></td><td>ESKF</td><td>0</td><td>0</td><td>1.89</td><td>3.6</td><td>2.19</td></tr>
-    <tr><td>IULUI (3)</td><td>KIMS</td><td class="best">0</td><td class="best">0</td><td class="best">0.00</td><td class="best">0.0</td><td class="best">0.50</td></tr>
-    <tr><td></td><td>SFUISE</td><td>0</td><td>0</td><td>0.00</td><td>0.0</td><td>0.65</td></tr>
-  </table></div>
-  <p class="cap">Div.: runs with RMSE above 100 m. &gt;1 m: non-diverged runs with RMSE above 1 m. Time share (pooled
-     over the non-diverged runs), longest episode and largest error refer to 3D errors above 1 m. Filters are our runs
-     of the released code.</p>
+  <details><summary>Error distributions</summary>
   <div class="figcard"><img src="assets/fig_boxplot.png" alt="Error distributions per dataset"></div>
   <p class="cap">Distribution of the per-sequence 3D RMSE on each dataset (box: quartiles, whiskers: range; diverged
      runs counted at the top).</p>
