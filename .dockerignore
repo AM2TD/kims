@@ -1,7 +1,12 @@
+.git
 build
-.result_paper_ref
-result/*/*/plots
-docker
+build_*
+result/*
+!result/final
+data/miluv
+data/ntu
+data/util
+data/util_*
+docs/assets
 **/__pycache__
 *.pyc
-.git

@@ -1,0 +1,4 @@
+# NTU VIRAL anchor positions from /node_pos_sc in nya_01.bag (UWB frame W), ID order 100 101 102
+0.000000 0.000000 1.500000
+14.723500 0.000000 1.500000
+5.488741 -11.909119 1.500000

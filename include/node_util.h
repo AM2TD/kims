@@ -5,6 +5,8 @@
 #pragma once
 
 #include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <cmath>
 
 #include <fstream>
 #include <map>
@@ -58,4 +60,24 @@ inline Eigen::Matrix3d skew(const Eigen::Vector3d& v) {
          v(2),     0, -v(0),
         -v(1),  v(0),     0;
     return m;
+}
+
+// Initial body attitude shared by the baselines, the rule kims_node uses: tilt from the mean accelerometer over the first
+// align_still seconds (a z-down IMU is flipped first), then init_yaw degrees about world z. align_still <= 0 and
+// init_yaw 0 keep the old default: identity, or the 180 deg flip about x for a z-down IMU.
+template <class ImuVec>
+inline Eigen::Matrix3d initialAttitude(const ImuVec& imu, bool z_down, double align_still, double init_yaw_deg) {
+    Eigen::Matrix3d Rb = Eigen::Matrix3d::Identity();
+    if (z_down) { Rb(1, 1) = -1.0; Rb(2, 2) = -1.0; }
+    Eigen::Matrix3d R0 = Rb;
+    if (align_still > 0.0 && !imu.empty()) {
+        Eigen::Vector3d am = Eigen::Vector3d::Zero(); int n = 0;
+        for (const auto& d : imu) { if (d.timestamp > imu.front().timestamp + align_still) break; am += d.acc; ++n; }
+        if (n > 0) {
+            const Eigen::Vector3d ub = (Rb * (am / n)).normalized();
+            R0 = Eigen::Quaterniond::FromTwoVectors(ub, Eigen::Vector3d::UnitZ()).toRotationMatrix() * Rb;
+        }
+    }
+    if (init_yaw_deg != 0.0) R0 = Eigen::AngleAxisd(init_yaw_deg * M_PI / 180.0, Eigen::Vector3d::UnitZ()).toRotationMatrix() * R0;
+    return R0;
 }

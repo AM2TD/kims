@@ -6,16 +6,15 @@ set(CMAKE_CUDA_STANDARD 14)
 
 # The published results were produced by a Release build (-O3 -DNDEBUG). Neither
 # a bare `cmake` nor `catkin_make` sets a build type, so pin one here; without
-# -DNDEBUG the Eigen-heavy baselines keep their assertions and UKF-RTS in
-# particular converges to slightly different numbers.
+# -DNDEBUG the Eigen-heavy baselines keep their assertions and run slower.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 
-# The offline tools need no ROS: a plain `cmake .. && make` builds them and they
-# read CSV. Inside a catkin workspace the online node is built as well.
-# -DKIMS_NO_ROS=ON forces the offline-only path even in a shell where ROS is
-# sourced (CMake would otherwise pick /opt/ros/<distro> up from PATH).
+# The tools need no ROS: a plain `cmake .. && make` builds them and they read
+# CSV. Inside a catkin workspace the package is registered as well.
+# -DKIMS_NO_ROS=ON forces the plain path even in a shell where ROS is sourced
+# (CMake would otherwise pick /opt/ros/<distro> up from PATH).
 option(KIMS_NO_ROS "Build the offline binaries only, ignore catkin" OFF)
 if(NOT KIMS_NO_ROS)
   find_package(catkin QUIET COMPONENTS
@@ -24,10 +23,7 @@ if(NOT KIMS_NO_ROS)
   )
 endif()
 if(catkin_FOUND)
-  add_message_files(FILES UwbRange.msg ImuSample.msg)
-  generate_messages(DEPENDENCIES std_msgs geometry_msgs)
-  catkin_package(CATKIN_DEPENDS roscpp rospy roslib std_msgs sensor_msgs geometry_msgs
-                                nav_msgs tf2_ros message_runtime nlink_parser)
+  catkin_package()   # offline tools only; catkin just needs the package registered
 endif()
 
 find_package(Ceres REQUIRED)
@@ -39,8 +35,8 @@ endif()
 
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")
 
-# Identical floating-point contraction everywhere, so the same expression gives
-# the same bits whether it is compiled for the offline tool or the online node.
+# No floating-point contraction, so host and device code evaluate the same
+# expression to the same bits.
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -ffp-contract=off")
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=-ffp-contract=off")
 if(DEFINED ENV{KIMS_PORTABLE})
@@ -89,24 +85,8 @@ endfunction()
 
 kims_add(kims               FALSE src/offline/kims_node.cu src/offline/kims_solver.cu)
 kims_add(ekf_rts            FALSE src/offline/ekf_rts.cpp)
-kims_add(ukf_rts            FALSE src/offline/ukf_rts.cpp)
 kims_add(particle_smoothing FALSE src/offline/particle_smoothing.cpp)
 kims_add(sw_pgo             TRUE  src/offline/sw_pgo.cpp)
 # IULUI solves a different SW-PGO problem: attitude on a quaternion manifold
 # with a dynamic autodiff cost, so it keeps its own node.
 kims_add(sw_pgo_iului       TRUE  src/offline/sw_pgo_iului.cpp)
-
-# ── Online: real-time node, built only when ROS is present ──────────────────
-if(catkin_FOUND)
-  include_directories(${catkin_INCLUDE_DIRS})
-  add_executable(kims_online src/online/kims_online_node.cpp src/offline/kims_solver.cu)
-  target_include_directories(kims_online PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-  target_link_libraries(kims_online PRIVATE ${catkin_LIBRARIES} cudart)
-  add_dependencies(kims_online ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-  if(OPENMP_FOUND)
-    target_link_libraries(kims_online PRIVATE OpenMP::OpenMP_CXX)
-  endif()
-
-  catkin_install_python(PROGRAMS scripts/run.py scripts/plot.py scripts/replay.py
-    DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-endif()

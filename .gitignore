@@ -1,4 +1,27 @@
+# build trees
 build/
+build_*/
 __pycache__/
 *.pyc
-result/*/*/plots/
+
+# docs/: only the project page and its assets ship
+docs/*
+!docs/index.html
+!docs/assets/
+
+# datasets: only IULUI ships with the repository. MILUV, NTU VIRAL and UTIL are fetched or converted by the
+# scripts in scripts/ (see README); their anchor files and experiment table are small configuration files and ship.
+data/*
+!data/iului/
+data/miluv/*
+!data/miluv/
+!data/miluv/anchors_constellation*.txt
+!data/miluv/experiments.csv
+data/ntu/*
+!data/ntu/
+!data/ntu/anchors_*.txt
+!data/ntu/init_poses.json
+
+# run outputs: only the curated final tables and figures ship (result/final/)
+result/*
+!result/final/

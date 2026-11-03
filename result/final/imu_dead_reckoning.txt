@@ -1,0 +1,116 @@
+IMU dead reckoning (no UWB), same IMU stream and rest-phase bias correction as KIMS, started every 1 s from the ground-truth
+position/velocity and KIMS's attitude estimate. Drift [m] = |p_imu - p_gt| after h seconds; median / p90 over all starts of a dataset.
+
+dataset   seq starts |         h=1 s         h=2 s         h=3 s         h=5 s        h=10 s | from the first epoch: 10 s   30 s   60 s (median over sequences)
+miluv      13   2289 |   0.05/  0.11   0.16/  0.34   0.32/  0.68   0.85/  1.75   3.37/  6.98 |    4.9   48.7  180.0
+ntu         9   2798 |   0.35/  0.45   0.47/  0.70   1.00/  1.34   3.10/  3.76  16.33/ 18.49 |   16.2  351.2 2654.8
+util       79   8977 |   0.03/  0.07   0.10/  0.25   0.24/  0.57   0.68/  1.67   3.07/  7.80 |    3.8   50.1  271.4
+iului       3    217 |   0.16/  0.22   0.38/  0.61   0.66/  1.12   1.51/  2.52   5.65/ 10.31 |    5.7   80.8  311.2
+
+Per sequence, median drift at 2 s and 10 s [m]:
+  miluv  default_1_remoteControlHighPace_1          0.29    4.93
+  miluv  default_1_random3_1                        0.13    2.55
+  miluv  default_1_random3_0                        0.13    2.94
+  miluv  default_1_circular3D_0                     0.13    2.86
+  miluv  default_1_remoteControlLowPace_0_v2        0.11    2.69
+  miluv  default_1_remoteControlLowPace_0           0.13    2.48
+  miluv  default_1_circular2D_0                     0.18    3.77
+  miluv  default_1_remoteControlHighPace_0          0.24    4.90
+  miluv  obstacles_1_random3_0b                     0.13    3.05
+  miluv  default_1_random3_2                        0.13    3.16
+  miluv  default_1_remoteControlHighPace_2          0.29    4.99
+  miluv  noAprilTags_1_random3_2b                   0.13    3.09
+  miluv  noAprilTags_1_remoteControlHighPace_2b     0.29    5.44
+  ntu    eee_01                                     0.46   16.19
+  ntu    eee_02                                     0.41   15.19
+  ntu    eee_03                                     0.52   15.99
+  ntu    nya_01                                     0.47   18.02
+  ntu    nya_02                                     0.48   17.21
+  ntu    nya_03                                     0.49   16.79
+  ntu    sbs_01                                     0.46   15.43
+  ntu    sbs_02                                     0.46   15.71
+  ntu    sbs_03                                     0.45   15.58
+  util   const1-trial1-tdoa2                        0.10    3.54
+  util   const1-trial1-tdoa3                        0.09    2.94
+  util   const1-trial2-tdoa2                        0.11    4.18
+  util   const1-trial2-tdoa3                        0.15    5.38
+  util   const1-trial3-tdoa2                        0.10    3.01
+  util   const1-trial3-tdoa3                        0.11    3.50
+  util   const1-trial4-tdoa2                        0.11    4.19
+  util   const1-trial4-tdoa3                        0.12    4.61
+  util   const1-trial5-tdoa2                        0.10    3.58
+  util   const1-trial5-tdoa3                        0.12    4.61
+  util   const1-trial6-tdoa2                        0.12    3.75
+  util   const1-trial6-tdoa3                        0.11    3.95
+  util   const2-trial1-tdoa2                        0.10    2.84
+  util   const2-trial1-tdoa3                        0.10    3.49
+  util   const2-trial2-tdoa2                        0.08    2.44
+  util   const2-trial2-tdoa3                        0.09    2.79
+  util   const2-trial3-tdoa2                        0.08    2.63
+  util   const2-trial3-tdoa3                        3.90   97.01
+  util   const2-trial4-tdoa2                        0.08    2.63
+  util   const2-trial4-tdoa3                        0.10    3.00
+  util   const2-trial5-tdoa2                        0.09    2.57
+  util   const2-trial5-tdoa3                        0.11    2.76
+  util   const2-trial6-tdoa2                        0.09    2.59
+  util   const2-trial6-tdoa3                        0.12    3.77
+  util   const3-trial1-tdoa2                        0.12    3.31
+  util   const3-trial1-tdoa3                        0.12    3.01
+  util   const3-trial2-tdoa2                        0.10    2.63
+  util   const3-trial2-tdoa3                        0.11    3.83
+  util   const3-trial3-tdoa2                        0.10    2.65
+  util   const3-trial3-tdoa3                        0.12    3.12
+  util   const3-trial4-tdoa2                        0.11    3.14
+  util   const3-trial4-tdoa3                        0.10    2.48
+  util   const3-trial5-tdoa2                        0.09    2.82
+  util   const3-trial5-tdoa3                        0.10    2.57
+  util   const3-trial6-tdoa2                        0.10    2.82
+  util   const3-trial6-tdoa3                        0.12    3.45
+  util   const3-trial7-tdoa2-manual1                0.11    3.00
+  util   const3-trial7-tdoa2-manual2                0.13    2.97
+  util   const3-trial7-tdoa3-manual3                0.10    2.72
+  util   const3-trial7-tdoa3-manual4                0.13    2.97
+  util   const4-trial1-tdoa2-traj1                  0.08    2.45
+  util   const4-trial1-tdoa2-traj2                  0.08    2.23
+  util   const4-trial1-tdoa2-traj3                  0.10    3.15
+  util   const4-trial1-tdoa3-traj1                  0.08    2.47
+  util   const4-trial1-tdoa3-traj2                  0.08    2.41
+  util   const4-trial1-tdoa3-traj3                  0.10    2.82
+  util   const4-trial2-tdoa2-traj1                  0.07    2.28
+  util   const4-trial2-tdoa2-traj2                  3.26   82.55
+  util   const4-trial2-tdoa2-traj3                  0.07    1.99
+  util   const4-trial2-tdoa3-traj1                  0.09    2.54
+  util   const4-trial2-tdoa3-traj2                  3.13   79.58
+  util   const4-trial2-tdoa3-traj3                  2.30   57.35
+  util   const4-trial3-tdoa2-traj1                  3.44   87.32
+  util   const4-trial3-tdoa2-traj2                  0.09    2.66
+  util   const4-trial3-tdoa2-traj3                  0.09    2.84
+  util   const4-trial3-tdoa3-traj1                  0.09    2.96
+  util   const4-trial3-tdoa3-traj2                  0.09    2.62
+  util   const4-trial3-tdoa3-traj3                  0.11    3.72
+  util   const4-trial4-tdoa2-traj1                  0.10    2.73
+  util   const4-trial4-tdoa2-traj2                  0.10    2.66
+  util   const4-trial4-tdoa2-traj3                  0.10    2.63
+  util   const4-trial4-tdoa3-traj1                  0.11    2.91
+  util   const4-trial4-tdoa3-traj2                  0.11    3.30
+  util   const4-trial4-tdoa3-traj3                  0.12    3.67
+  util   const4-trial5-tdoa2-traj1                  0.09    2.93
+  util   const4-trial5-tdoa2-traj2                  0.09    2.48
+  util   const4-trial5-tdoa2-traj3                  0.08    2.64
+  util   const4-trial5-tdoa3-traj1                  0.08    2.38
+  util   const4-trial5-tdoa3-traj2                  0.09    2.43
+  util   const4-trial5-tdoa3-traj3                  0.09    2.79
+  util   const4-trial6-tdoa2-traj1                  0.10    2.45
+  util   const4-trial6-tdoa2-traj2                  0.10    2.93
+  util   const4-trial6-tdoa2-traj3                  0.12    2.87
+  util   const4-trial6-tdoa3-traj1                  0.09    2.49
+  util   const4-trial6-tdoa3-traj2                  0.10    2.90
+  util   const4-trial6-tdoa3-traj3                  0.10    2.93
+  util   const4-trial7-tdoa2-manual1                0.09    2.28
+  util   const4-trial7-tdoa2-manual2                0.12    2.60
+  util   const4-trial7-tdoa2-manual3                0.12    2.86
+  iului  SquareTurn                                 0.31    4.23
+  iului  CircleSpin                                 0.47    7.61
+  iului  AC3_125000                                 0.38    5.08
+
+MILUV/IULUI/UTIL ground truth = motion capture body origin; NTU = Leica prism (estimates moved to the prism with the propagated attitude).

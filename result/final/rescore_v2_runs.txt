@@ -1,0 +1,27 @@
+dataset sequence                                 |  v2 run, final scoring  final run | v2 file date
+miluv  default_1_remoteControlHighPace_1        |              no v2 run      0.205 |
+miluv  default_1_random3_1                      |              no v2 run      0.231 |
+miluv  default_1_random3_0                      |                  0.193      0.165 | 2026-08-13
+miluv  default_1_circular3D_0                   |                  0.341      0.093 | 2026-08-13
+miluv  default_1_remoteControlLowPace_0_v2      |                  0.165      0.086 | 2026-08-13
+miluv  default_1_remoteControlLowPace_0         |              no v2 run      0.202 |
+miluv  default_1_circular2D_0                   |              no v2 run      0.134 |
+miluv  default_1_remoteControlHighPace_0        |              no v2 run      0.100 |
+miluv  obstacles_1_random3_0b                   |              no v2 run      0.130 |
+miluv  default_1_random3_2                      |              no v2 run      0.135 |
+miluv  default_1_remoteControlHighPace_2        |              no v2 run      0.244 |
+miluv  noAprilTags_1_random3_2b                 |              no v2 run      0.130 |
+miluv  noAprilTags_1_remoteControlHighPace_2b   |              no v2 run      0.191 |
+ntu    eee_01                                   |                  0.468      0.204 | 2026-08-13
+ntu    eee_02                                   |                  1.331      0.367 | 2026-08-13
+ntu    eee_03                                   |                  1.141      1.845 | 2026-08-13
+ntu    nya_01                                   |              no v2 run      0.791 |
+ntu    nya_02                                   |              no v2 run      3.084 |
+ntu    nya_03                                   |              no v2 run      0.903 |
+ntu    sbs_01                                   |              no v2 run      0.190 |
+ntu    sbs_02                                   |              no v2 run      0.409 |
+ntu    sbs_03                                   |              no v2 run      0.435 |
+iului  SquareTurn                               |                  0.159      0.120 | 2026-09-28
+iului  CircleSpin                               |                  0.191      0.118 | 2026-09-28
+
+v2 runs: lag 15 epochs (the old window), no window flush. MILUV constellation 2 v2 runs used the devkit anchor order.

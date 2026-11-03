@@ -175,10 +175,10 @@
 
 <section class="wrap">
   <h2><span class="accent">&#9670;</span> What KIMS does</h2>
-  <p>UWB ranges do not drift, but two properties of UWB-IMU data make the posterior of a sliding window non-Gaussian.
+  <p>UWB ranges do not drift, but two properties of UWB ranging make the posterior of a sliding window non-Gaussian.
      Range errors are heavy-tailed, with non-line-of-sight delays and per-link biases that persist for seconds, and
-     anchors are usually mounted at similar heights, so near the anchor plane the ranges constrain the height above
-     it only weakly. With exactly coplanar anchors the posterior can even split into two mirror-symmetric branches,
+     when the anchors are mounted at similar heights the ranges constrain the height above the anchor plane only
+     weakly. With exactly coplanar anchors the posterior can even split into two mirror-symmetric branches,
      the flip ambiguity of range-based localization. An estimator that carries each window into the next as a mode
      with its curvature describes such a posterior by one local fit, and near the plane by only the branch its
      iteration reached.</p>
@@ -320,10 +320,10 @@
      longer diverges but fails on 10 of the 13 MILUV flights and on every NTU VIRAL flight, because the ranges that
      the gate rejected now bend the spline from inside the cut. Two conclusions follow. The window variable by itself
      does not raise the accuracy, since LM, which optimizes it with the same loss, is not more accurate than SW-PGO in
-     median on any dataset, so the margin of KIMS over both comes from the sampling and the carried moments. The
-     window variable with its prior does keep the estimate on a path the IMU can explain, since neither KIMS nor LM
-     ever diverges, whereas an estimator over the states can drift further than the cut from the ranges, where the
-     bounded loss gives no pull and nothing brings it back, as the particle filter does on every flight.</p>
+     median on any dataset, so the margin of KIMS over both comes from the sampling and the carried moments. Between
+     the two samplers, what is sampled decides the robustness. KIMS over the 33-dimensional window variable never
+     diverges, nor does LM over the same variable, whereas the particle filter over the states, whose sampled
+     dimension grows with the window, still diverges on 10 of the 33 flights with ten times the process noise.</p>
 
   <div class="figcard"><img src="assets/fig_traj_axes.png" alt="Per-axis trajectories on one sequence per dataset"></div>
   <p class="cap">One sequence per dataset, per axis: KIMS, SFUISE and our runs of the dataset filter against the ground

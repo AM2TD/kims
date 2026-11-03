@@ -1,0 +1,108 @@
+diff -ruN a/include/Linearizer.h b/include/Linearizer.h
+--- a/include/Linearizer.h	2026-10-12 13:36:51.618387844 +0900
++++ b/include/Linearizer.h	2026-10-12 13:36:51.626388144 +0900
+@@ -8,6 +8,8 @@
+ 
+ struct Parameters {
+ 
++    Eigen::aligned_map<uint16_t, Eigen::Vector3d> tag_offsets;   // KIMS comparison: per-tag lever arm (empty = calib offset)
++
+     bool if_opt_g;
+     bool if_opt_transform;
+     bool if_reject_uwb;
+@@ -268,6 +270,7 @@
+             int64_t t_ns = pm.time_ns;
+             uint16_t anchor_id = pm.anchor_id;
+             Eigen::Vector3d offset = calib_param->offset;
++            if (!param->tag_offsets.empty() && param->tag_offsets.count(pm.tag_id)) offset = param->tag_offsets.at(pm.tag_id);
+             double residual = Residuals::toaResidualJacobian(t_ns, spline, pm.data, an_list.at(anchor_id), offset,
+                                                              t_UW, q_UW, time_offset[anchor_id], &J, &J_tUW, &J_qUW);
+             if (if_reject_uwb_in_optimization && abs(residual) > reject_uwb_thresh) {
+@@ -459,6 +462,7 @@
+         for (const auto& pm : r) {
+             int64_t t_ns = pm.time_ns;
+             Eigen::Vector3d offset = calib_param->offset;
++            if (!param->tag_offsets.empty() && param->tag_offsets.count(pm.tag_id)) offset = param->tag_offsets.at(pm.tag_id);
+             uint16_t anchor_id = pm.anchor_id;
+             double residual = Residuals::toaResidual(t_ns, spline, pm.data, an_list.at(anchor_id),
+                                                      offset, t_UW, q_UW, time_offset[anchor_id]);
+diff -ruN a/include/utils/common_utils.h b/include/utils/common_utils.h
+--- a/include/utils/common_utils.h	2026-10-12 13:36:51.618387844 +0900
++++ b/include/utils/common_utils.h	2026-10-12 13:36:51.626388144 +0900
+@@ -49,7 +49,8 @@
+     const int64_t time_ns;
+     const int anchor_id;
+     const double data;
+-    TOAData(const int64_t s, const int i, const double r) : time_ns(s), anchor_id(i), data(r) {};
++    const int tag_id;   // KIMS comparison: tag of the range (RTLSStick.id), -1 = single-tag offset
++    TOAData(const int64_t s, const int i, const double r, const int tg = -1) : time_ns(s), anchor_id(i), data(r), tag_id(tg) {};
+ };
+ 
+ struct TDOAData {
+diff -ruN a/src/EstimationInterface.cpp b/src/EstimationInterface.cpp
+--- a/src/EstimationInterface.cpp	2026-10-12 13:36:51.618387844 +0900
++++ b/src/EstimationInterface.cpp	2026-10-12 13:59:38.874321227 +0900
+@@ -183,7 +183,8 @@
+         }
+         pub_opt_old.publish(opt_old_path);
+         pub_opt_window.publish(opt_window_path);
+-        opt_pose_vis.pubPose(opt_window.back().pos,opt_window.back().orient,pub_opt_pose,opt_window_path.header);
++        if (!opt_window.empty())   // KIMS comparison: no GT stamp in the window yet (NTU GT starts late) -> nothing to show
++            opt_pose_vis.pubPose(opt_window.back().pos,opt_window.back().orient,pub_opt_pose,opt_window_path.header);
+      }
+ 
+     void getImuCallback(const sensor_msgs::Imu::ConstPtr& imu_msg)
+diff -ruN a/src/SplineFusion.cpp b/src/SplineFusion.cpp
+--- a/src/SplineFusion.cpp	2026-10-12 13:36:51.618387844 +0900
++++ b/src/SplineFusion.cpp	2026-10-12 14:38:00.971899309 +0900
+@@ -160,6 +160,14 @@
+             param.q_nav_uwb_init.setIdentity();
+             param.t_nav_uwb_init.setZero();
+         }
++        {   // KIMS comparison: optional per-tag lever arms and initial nav->UWB transform (start pose), defaults unchanged
++            std::vector<int> v_ids; std::vector<double> v_off, v_t0, v_q0;
++            if (nh.getParam("tag_ids", v_ids) && nh.getParam("tag_offsets", v_off) && v_off.size() == 3 * v_ids.size())
++                for (size_t i = 0; i < v_ids.size(); ++i) param.tag_offsets[v_ids[i]] = Eigen::Vector3d(v_off[3*i], v_off[3*i+1], v_off[3*i+2]);
++            if (nh.getParam("t_nav_uwb_init", v_t0) && v_t0.size() == 3) param.t_nav_uwb_init = Eigen::Vector3d(v_t0[0], v_t0[1], v_t0[2]);
++            if (nh.getParam("q_nav_uwb_init", v_q0) && v_q0.size() == 4) param.q_nav_uwb_init = Eigen::Quaterniond(v_q0[0], v_q0[1], v_q0[2], v_q0[3]).normalized();
++            ROS_INFO_STREAM("[kims-cmp] tag offsets " << param.tag_offsets.size() << ", t_nav_uwb_init " << param.t_nav_uwb_init.transpose());
++        }
+         std::vector<double> accel_var_inv = CommonUtils::readParam<std::vector<double>>(nh, "accel_var_inv");
+         param.accel_var_inv << accel_var_inv.at(0), accel_var_inv.at(1), accel_var_inv.at(2);
+         std::vector<double> bias_accel_var_inv = CommonUtils::readParam<std::vector<double>>(nh, "bias_accel_var_inv");
+@@ -205,7 +213,7 @@
+         int64_t t_ns = uwb_msg->header.stamp.toNSec();
+         for (const auto& rg : uwb_msg->ranges) {
+             if (rg.ra == 0) continue;
+-            TOAData uwb(t_ns, rg.id, rg.range);
++            TOAData uwb(t_ns, rg.id, rg.range, uwb_msg->id);
+             toa_buff.push_back(uwb);
+         }
+     }
+@@ -231,7 +239,7 @@
+     {
+         int64_t t_window_l = spline_local.minTimeNs();
+         if(!data_window.empty()) {
+-            while (data_window.front().time_ns < t_window_l) {
++            while (!data_window.empty() && data_window.front().time_ns < t_window_l) {   // KIMS comparison: empty-deque guard
+                data_window.pop_front();
+             }
+         }
+@@ -244,7 +252,7 @@
+                 break;
+             }
+         }
+-        while (data_buff.front().time_ns <= t_window_r) {
++        while (!data_buff.empty() && data_buff.front().time_ns <= t_window_r) {   // KIMS comparison: empty-deque guard
+             data_buff.pop_front();
+             if(data_buff.empty()) break;
+         }
+@@ -268,7 +276,7 @@
+                     if (spline_local.numKnots() <=2) {
+                         last_imu_t_ns = bag_start_time;
+                     } else {
+-                        last_imu_t_ns = imu_window.back().time_ns;
++                        if (!imu_window.empty()) last_imu_t_ns = imu_window.back().time_ns;   // KIMS comparison: guard
+                     }
+                     integration(next_knot_TimeNs, q_ini, pos_ini);
+                 } else {

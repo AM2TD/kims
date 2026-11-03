@@ -13,7 +13,9 @@ struct Session {
     std::vector<GtPose>   gt;
 
     std::vector<double> anchors;
+    std::vector<double> anchorsB;     // TDOA (dataset util): anchor B of every slot; anchors holds anchor A
     std::vector<double> tag_offsets;
+    int tdoa = 0;
     int num_anchors = 0;
     int num_tags    = 0;
 
@@ -232,9 +234,9 @@ inline bool loadSession(const std::map<std::string, std::string>& a, Session& s)
             imu_csv = dir + "/imu_px4.csv";
             uwb_csv = dir + "/uwb_range.csv";
         } else {
-            s.num_tags = 4;
+            s.num_tags = getArg<int>(a, "num_tags", 4);           // num_tags:=1 keeps tag0 only (single-tag test)
             s.num_anchors = 3;
-            for (int i = 0; i < 4; ++i)
+            for (int i = 0; i < s.num_tags; ++i)
                 tag_ids.push_back(getArg<int>(a, "tag" + std::to_string(i) + "_id", 2000 + i));
             for (int i = 0; i < 3; ++i)
                 anchor_ids.push_back(getArg<int>(a, "anchor" + std::to_string(i) + "_id", 100 + i));
@@ -246,6 +248,23 @@ inline bool loadSession(const std::map<std::string, std::string>& a, Session& s)
         if (!loadUwbCsv(uwb_csv, tag_ids, anchor_ids, s.uwb)) return false;
         if (dataset == "miluv") loadMocapCsv(dir + "/mocap.csv", s.gt);
         else                    loadLeicaCsv(dir + "/leica.csv", s.gt);
+    } else if (dataset == "util") {
+        // UTIL (UWB TDOA, one tag): every "anchor" is an anchor-pair slot (A, B) measuring |tag - B| - |tag - A|,
+        // stored shifted by TDOA_SHIFT so that a valid value stays > 0 (scripts/revision/util_prepare.py)
+        const std::string dir = getArg<std::string>(a, "data_dir", "");
+        const std::string fa = getArg<std::string>(a, "anchor_file", ""), fb = getArg<std::string>(a, "anchor_b_file", "");
+        if (dir.empty() || fa.empty() || fb.empty()) {
+            std::cerr << "[kims] util needs data_dir, anchor_file and anchor_b_file\n"; return false;
+        }
+        s.num_tags = 1; s.num_anchors = getArg<int>(a, "num_anchors", 8); s.tdoa = 1;
+        std::vector<int> tag_ids = {getArg<int>(a, "tag0_id", 0)}, anchor_ids;
+        for (int i = 0; i < s.num_anchors; ++i) anchor_ids.push_back(i);
+        if (!loadAnchorFile(fa, s.anchors, s.num_anchors) || !loadAnchorFile(fb, s.anchorsB, s.num_anchors)) {
+            std::cerr << "[kims] util slot files must hold num_anchors rows\n"; return false;
+        }
+        if (!loadImuCsv(dir + "/imu.csv", s.imu)) return false;
+        if (!loadUwbCsv(dir + "/uwb_range.csv", tag_ids, anchor_ids, s.uwb)) return false;
+        loadLeicaCsv(dir + "/gt.csv", s.gt);
     } else {
         std::cerr << "[kims] unknown dataset: " << dataset << "\n";
         return false;

@@ -13,6 +13,9 @@
 #include <chrono>
 
 
+static double g_robust_delta = 0.0;
+static double g_sigma_uwb = 1.0;      // std_uwb:=s: range residuals divided by s (1 = published, unscaled)
+static bool   g_fresh_only = false;   // fresh_only:=1: each node keeps only its own new range (published: latest of every pair)   // Cauchy loss scale on the range residuals (0 = plain least squares)
 template <int NT, int NA>
 struct UWBRangingCost {
     static constexpr int NR = NT * NA;
@@ -42,7 +45,8 @@ struct UWBRangingCost {
             for (int ai = 0; ai < NA; ++ai) {
                 int ri = ti * NA + ai;
                 Eigen::Matrix<T, 3, 1> anc = anchors_.row(ai).transpose().template cast<T>();
-                residuals[ri] = (tags[ti] - anc).norm() - T(ranges_[ri]);
+                if (g_fresh_only && ranges_[ri] <= 0.0) { residuals[ri] = T(0); continue; }   // masked pair (fresh_only)
+                residuals[ri] = ((tags[ti] - anc).norm() - T(ranges_[ri])) / T(g_sigma_uwb);
             }
         }
         return true;
@@ -139,6 +143,16 @@ struct RotationOrthogonalityCost {
     }
 };
 
+// floor prior (ablation): residual = w * min(z, 0), i.e. a one-sided quadratic below z = 0
+struct FloorCost {
+    explicit FloorCost(double w) : w_(w) {}
+    template <typename T> bool operator()(const T* const position, T* residual) const {
+        residual[0] = position[2] < T(0.0) ? T(w_) * position[2] : T(0.0); return true;
+    }
+    static ceres::CostFunction* Create(double w) { return new ceres::AutoDiffCostFunction<FloorCost, 1, 3>(new FloorCost(w)); }
+    double w_;
+};
+static double g_floor_w = 0.0;
 struct WindowNode {
     double timestamp;
     double pos[3];
@@ -154,6 +168,9 @@ static void rotToArray(const Eigen::Matrix3d& R, double* arr) {
         for (int j = 0; j < 3; ++j)
             arr[i*3+j] = R(i, j);
 }
+
+static Eigen::Matrix3d g_R0 = Eigen::Matrix3d::Identity();   // start attitude (initialAttitude), used when g_R0_set
+static bool g_R0_set = false;
 
 template <int NT, int NA>
 static int runSwPgo(const std::vector<ImuData>& imu_data,
@@ -180,8 +197,8 @@ static int runSwPgo(const std::vector<ImuData>& imu_data,
     first_node.timestamp = imu_data.empty() ? 0.0 : imu_data[0].timestamp;
     first_node.pos[0] = init_x; first_node.pos[1] = init_y; first_node.pos[2] = init_z;
     first_node.vel[0] = first_node.vel[1] = first_node.vel[2] = 0.0;
-    rotToArray(z_down ? Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()).toRotationMatrix()
-                      : Eigen::Matrix3d::Identity(),
+    rotToArray(g_R0_set ? g_R0 : (z_down ? Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()).toRotationMatrix()
+                                         : Eigen::Matrix3d::Identity()),
                first_node.rot);
     std::fill(first_node.ranges, first_node.ranges + 12, -1.0);
     first_node.has_uwb = false;
@@ -195,6 +212,12 @@ static int runSwPgo(const std::vector<ImuData>& imu_data,
         node.timestamp = uwb.timestamp;
         node.has_uwb   = true;
         latest.copyTo(node.ranges);
+        if (g_fresh_only) {   // keep only this event's range
+            const auto ti = std::find(tag_ids.begin(), tag_ids.end(), uwb.from_id);
+            const auto ai = std::find(anchor_ids.begin(), anchor_ids.end(), uwb.to_id);
+            const int keep = (ti != tag_ids.end() && ai != anchor_ids.end()) ? int(ti - tag_ids.begin()) * NA + int(ai - anchor_ids.begin()) : -1;
+            for (int i = 0; i < NT * NA; ++i) if (i != keep) node.ranges[i] = -1.0;
+        }
 
         const WindowNode& prev = window.back();
         for (int k = 0; k < 3; ++k) node.pos[k] = prev.pos[k];
@@ -214,9 +237,10 @@ static int runSwPgo(const std::vector<ImuData>& imu_data,
             if (nd.has_uwb) {
                 problem.AddResidualBlock(
                     UWBRangingCost<NT, NA>::Create(nd.ranges, anchors, tag_off),
-                    nullptr, nd.pos, nd.rot);
+                    g_robust_delta > 0.0 ? new ceres::CauchyLoss(g_robust_delta) : nullptr, nd.pos, nd.rot);   // robust_delta:=d (m): Cauchy kernel
             }
             problem.AddResidualBlock(RotationOrthogonalityCost::Create(), nullptr, nd.rot);
+            if (g_floor_w > 0.0) problem.AddResidualBlock(FloorCost::Create(g_floor_w), nullptr, nd.pos);
 
             if (w + 1 < (int)window.size()) {
                 double dt = window[w+1].timestamp - nd.timestamp;
@@ -318,6 +342,10 @@ int main(int argc, char** argv) {
     else        for (int a = 0; a < NA; ++a) anchor_ids.push_back(a);
 
     int    win_size = getArg<int>   (args, "window_size", is_ntu ? 15 : 15);
+    g_robust_delta  = getArg<double>(args, "robust_delta", 0.0);
+    g_sigma_uwb     = getArg<double>(args, "std_uwb", 1.0);
+    g_fresh_only    = getArg<int>(args, "fresh_only", 0) != 0;
+    g_floor_w       = std::sqrt(getArg<double>(args, "floor_penalty", 0.0));   // same weight convention as kims: cost = floor_penalty * z^2
     double init_x   = getArg<double>(args, "init_x", 0.0);
     double init_y   = getArg<double>(args, "init_y", 0.0);
     double init_z   = getArg<double>(args, "init_z", 0.0);
@@ -325,6 +353,16 @@ int main(int argc, char** argv) {
     std::vector<ImuData>  imu_data;
     std::vector<UwbRange> uwb_raw;
     if (!loadImu(imu_file, imu_data)) return 1;
+    if (getArg<int>(args, "still_bias", 0) != 0 && !imu_data.empty()) {   // KIMS still_bias: rest-phase gyro mean, |a| - g
+        const double still = std::max(getArg<double>(args, "align_still", 3.0), 0.5);
+        Eigen::Vector3d am = Eigen::Vector3d::Zero(), gm = Eigen::Vector3d::Zero(); int n = 0;
+        for (const auto& d : imu_data) { if (d.timestamp > imu_data.front().timestamp + still) break; am += d.acc; gm += d.gyr; ++n; }
+        if (n > 0) { am /= n; gm /= n; const Eigen::Vector3d ba = (am.norm() - 9.81) * am.normalized(); for (auto& d : imu_data) { d.gyr -= gm; d.acc -= ba; } }
+    }
+    if (args.count("align_still") || args.count("init_yaw")) {     // same start attitude as KIMS
+        g_R0 = initialAttitude(imu_data, dataset == "ntu", getArg<double>(args, "align_still", 0.0), getArg<double>(args, "init_yaw", 0.0));
+        g_R0_set = true;
+    }
     if (!loadUwbRange(uwb_file, tag_ids, anchor_ids, uwb_raw)) return 1;
 
     std::vector<double> h_anchor(3 * NA);

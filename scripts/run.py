@@ -12,7 +12,7 @@ dataset. Anything can still be overridden on the command line, for example
 import argparse, json, os, shutil, subprocess, sys, time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from datasets import CONFIG, DATASETS, METHODS
+from datasets import CONFIG, DATASETS, METHODS, anchor_path
 
 PKG = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -40,9 +40,11 @@ def find_binary(method, dataset):
 
 def compose(dataset, method, seq, out_file):
     ds = CONFIG[dataset]
-    a = [f"dataset:={dataset}", f"sequence:={seq}"]
+    a = [f"dataset:={dataset}", f"sequence:={seq}", f"pkg_dir:={PKG}"]
     if dataset == "iului":
-        meta = json.load(open(os.path.join(PKG, ds["meta"].format(seq=seq))))
+        mp = os.path.join(PKG, ds["meta"].format(seq=seq))
+        if not os.path.exists(mp): mp = os.path.join(PKG, "data/iului", f"{seq}.json")   # other anchor configurations, e.g. AC3_125000
+        meta = json.load(open(mp))
         a += [f"data_dir:={os.path.join(PKG, ds['data_dir'].format(seq=seq))}",
               f"output_file:={out_file}",
               f"num_anchors:={ds['num_anchors']}",
@@ -57,7 +59,7 @@ def compose(dataset, method, seq, out_file):
             a.append(f"tag1_offset_{ax}:={meta['tag1_offset'][k]}")
     elif dataset == "miluv":
         a += [f"data_dir:={os.path.join(PKG, ds['data_dir'].format(seq=seq))}",
-              f"anchor_file:={os.path.join(PKG, ds['anchor_file'])}",
+              f"anchor_file:={os.path.join(PKG, anchor_path(dataset, seq))}",
               f"output_file:={out_file}",
               f"tag0_id:={ds['tag_ids'][0]}", f"tag1_id:={ds['tag_ids'][1]}"]
         for t, off in enumerate(ds["tag_offsets"]):
@@ -125,7 +127,7 @@ def main():
     ap.add_argument("--dataset", default="all", help="|".join(DATASETS) + "|all")
     ap.add_argument("--sequence", default="all")
     args, rest = ap.parse_known_args()
-    extra = [a for a in rest if ":=" in a]
+    extra = [a for a in  rest if ":=" in a]
 
     methods = METHODS if args.method == "all" else [args.method]
     datasets = DATASETS if args.dataset == "all" else [args.dataset]
@@ -133,7 +135,9 @@ def main():
         sys.exit(f"[run] unknown dataset '{args.dataset}' — one of {DATASETS}|all")
     ran = 0
     for dataset in datasets:
-        if args.sequence != "all" and args.sequence not in CONFIG[dataset]["sequences"]:
+        derived = (args.sequence != "all" and
+                   os.path.isdir(os.path.join(PKG, CONFIG[dataset]["data_dir"].format(seq=args.sequence))))
+        if args.sequence != "all" and args.sequence not in CONFIG[dataset]["sequences"] and not derived:
             if args.dataset == "all":
                 continue
             sys.exit(f"[run] '{args.sequence}' is not a {dataset} sequence — one of "

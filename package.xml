@@ -3,10 +3,10 @@
   <name>kims</name>
   <version>1.0.0</version>
   <description>
-    KIMS: Kinematic-Constrained MPPI Smoothing for UWB-IMU 6-DoF Pose Estimation.
-    Offline evaluation of KIMS and the EKF-RTS, UKF-RTS, Particle Smoothing and
-    SW-PGO baselines on MILUV, NTU VIRAL and IULUI, plus a real-time ROS node.
-    The offline tools read CSV and build without ROS.
+    KIMS: Kinematics-Constrained MPPI Smoothing for UWB-IMU 6-DoF Pose Estimation.
+    Offline evaluation of KIMS on MILUV, NTU VIRAL, UTIL and IULUI, with the
+    first-submission EKF-RTS, particle-smoothing and SW-PGO baselines.
+    The tools read CSV and build without ROS.
   </description>
   <maintainer email="anonymous@anonymous.invalid">Anonymous</maintainer>
   <license>MIT</license>
