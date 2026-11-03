@@ -1,0 +1,39 @@
+KIMS (sampling) vs matched LM, 3D position RMSE [m]. Same objective and rollout model; LM = mode + Laplace Gaussian.
+'same' = within 1 cm.
+
+MILUV  sequence                                 |   KIMS     LM   LM-KIMS
+       default_1_remoteControlHighPace_1        |  0.205  0.239    +33.6 mm
+       default_1_random3_1                      |  0.231  0.269    +37.3 mm
+       default_1_random3_0                      |  0.165  0.682   +516.8 mm
+       default_1_circular3D_0                   |  0.093  0.093     -0.4 mm
+       default_1_remoteControlLowPace_0_v2      |  0.086  0.089     +2.4 mm
+       default_1_remoteControlLowPace_0         |  0.202  0.219    +17.4 mm
+       default_1_circular2D_0                   |  0.134  0.133     -0.4 mm
+       default_1_remoteControlHighPace_0        |  0.100  0.097     -3.0 mm
+       obstacles_1_random3_0b                   |  0.130  0.595   +464.6 mm
+       default_1_random3_2                      |  0.135  0.140     +4.5 mm
+       default_1_remoteControlHighPace_2        |  0.244  0.241     -3.4 mm
+       noAprilTags_1_random3_2b                 |  0.130  0.133     +3.0 mm
+       noAprilTags_1_remoteControlHighPace_2b   |  0.191  0.197     +5.4 mm
+
+NTU    sequence                                 |   KIMS     LM   LM-KIMS
+       eee_01                                   |  0.204  0.200     -3.7 mm
+       eee_02                                   |  0.367  0.363     -4.4 mm
+       eee_03                                   |  1.845  1.861    +15.4 mm
+       nya_01                                   |  0.791  0.785     -5.8 mm
+       nya_02                                   |  3.084  3.083     -0.6 mm
+       nya_03                                   |  0.903  0.997    +93.6 mm
+       sbs_01                                   |  0.190  0.183     -7.1 mm
+       sbs_02                                   |  0.409  0.633   +224.6 mm
+       sbs_03                                   |  0.435  0.433     -2.4 mm
+
+IULUI  sequence                                 |   KIMS     LM   LM-KIMS
+       SquareTurn                               |  0.120  0.548   +427.2 mm
+       CircleSpin                               |  0.118  0.418   +300.5 mm
+       AC3_125000                               |  0.128  0.175    +47.1 mm
+
+dataset    n | median KIMS   LM | KIMS lower  LM lower  same | LM worse by >5 cm
+miluv     13 |       0.135  0.197 |          5         0     8 | default_1_random3_0 (0.165 vs 0.682), obstacles_1_random3_0b (0.130 vs 0.595)
+ntu        9 |       0.435  0.633 |          3         0     6 | nya_03 (0.903 vs 0.997), sbs_02 (0.409 vs 0.633)
+util      79 |       0.187  0.191 |          3         0    76 | const4-trial7-tdoa2-manual2 (0.206 vs 0.281)
+iului      3 |       0.120  0.418 |          3         0     0 | SquareTurn (0.120 vs 0.548), CircleSpin (0.118 vs 0.418)

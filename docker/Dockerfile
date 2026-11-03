@@ -1,43 +1,28 @@
-# KIMS — reproducible evaluation container
+# KIMS: reproducible evaluation container (estimator only, no ROS)
 #
-#   docker build -t kims -f docker/Dockerfile .
-#   docker run --gpus all -it --rm -v "$(pwd)/result:/ws/src/kims/result" kims
-#   (inside)  python3 src/kims/scripts/run.py --method all --dataset all
-#             python3 src/kims/scripts/plot.py
+#   docker/build.sh                      # builds the image kims:v3 (needs the NVIDIA container toolkit)
+#   docker/run.sh                        # opens a shell with the GPU, data/ and result/ of this checkout mounted
+#   (inside)  scripts/reproduce.sh iului tables
+#             scripts/reproduce.sh       # all 104 flights once data/miluv, data/ntu and data/util are prepared
 #
-# Requires the NVIDIA container toolkit (--gpus all).
+# The image carries the IULUI data; the other datasets are mounted from the host (see README, "Data").
 
-FROM nvidia/cuda:12.4.1-devel-ubuntu20.04
+FROM nvidia/cuda:12.8.1-devel-ubuntu20.04
 
 ENV DEBIAN_FRONTEND=noninteractive TZ=Etc/UTC
-SHELL ["/bin/bash", "-c"]
-
-# ── ROS Noetic (ubuntu 20.04) ────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl gnupg2 lsb-release ca-certificates && \
-    curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
-        -o /usr/share/keyrings/ros-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros/ubuntu $(lsb_release -cs) main" \
-        > /etc/apt/sources.list.d/ros1.list && \
-    apt-get update && apt-get install -y --no-install-recommends \
-        ros-noetic-ros-base ros-noetic-rosbag ros-noetic-sensor-msgs \
-        ros-noetic-geometry-msgs ros-noetic-nav-msgs ros-noetic-tf2-ros \
-        ros-noetic-serial \
-        build-essential git \
+        build-essential cmake git ca-certificates \
         libceres-dev libeigen3-dev \
-        python3-numpy python3-matplotlib && \
+        python3 python3-numpy python3-pandas python3-scipy python3-matplotlib && \
     rm -rf /var/lib/apt/lists/*
 
-# ── workspace: nlink_parser (UWB message definitions) + kims ─────────────────
-WORKDIR /ws/src
-RUN git clone --depth 1 --recursive https://github.com/nooploop-dev/nlink_parser.git
-COPY . /ws/src/kims
+WORKDIR /kims
+COPY . /kims
 
-WORKDIR /ws
+# KIMS_PORTABLE drops -march=native so the image runs on any x86-64 host; the GPU
+# code is PTX and is compiled for the host GPU by the driver at first launch.
 ENV KIMS_PORTABLE=1
-RUN source /opt/ros/noetic/setup.bash && catkin_make -j"$(nproc)"
+RUN cmake -S . -B build -DKIMS_NO_ROS=ON && cmake --build build -j"$(nproc)"
 
-RUN echo "source /opt/ros/noetic/setup.bash && source /ws/devel/setup.bash" \
-        >> /root/.bashrc
-WORKDIR /ws
+ENV KIMS_OMP_THREADS=8
 CMD ["bash"]

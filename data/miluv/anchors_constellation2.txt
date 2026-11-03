@@ -1,0 +1,12 @@
+# Anchor Constellation 2
+# Source: miluv_devkit config/uwb/anchors.yaml, key "2" (Vicon), with anchors 2 and 3 swapped (2026-10-13).
+# The devkit lists the positions of anchors 2 and 3 in each other's place (devkit issue #56). Checked on the data: with the
+# devkit order the range residual median |e| of anchors 2/3 is 0.24/0.24 m (default_1_random3_2) and 0.21/0.17 m
+# (default_1_remoteControlHighPace_2); with the swap 0.05/0.07 and 0.07/0.08 m, like the other anchors (0.05-0.09 m).
+# The devkit order is kept in anchors_constellation2_devkit.txt.
+3.281616 0.833445 1.250294
+3.074647 -0.401409 1.907595
+-2.332290 -3.392796 1.845731
+-3.143183 -2.721825 1.338347
+-1.794655 4.198334 1.823314
+-0.294678 4.145901 1.225989

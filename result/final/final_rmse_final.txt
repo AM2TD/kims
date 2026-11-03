@@ -1,0 +1,48 @@
+Final 3D RMSE [m] (KIMS FP32 + 8 threads, IMU + UWB; SFUISE published config; MILUV: the MILUV paper's EKF with height (Table 10), x sqrt(3); UTIL: the UTIL paper's ESKF (Table 4); MILUV raw mocap GT; IULUI without SquareBob)
+miluv default_1_remoteControlHighPace_1 | 0.205 | diverged | 1.328
+miluv default_1_random3_1 | 0.231 | 0.488 | 0.255
+miluv default_1_random3_0 | 0.165 | 0.704 | 0.217
+miluv default_1_circular3D_0 | 0.093 | 0.123 | 0.303
+miluv default_1_remoteControlLowPace_0_v2 | 0.086 | 0.114 | 0.219
+miluv default_1_remoteControlLowPace_0 | 0.202 | 0.955 | 0.247
+miluv default_1_circular2D_0 | 0.134 | 0.192 | 0.335
+miluv default_1_remoteControlHighPace_0 | 0.100 | diverged | 1.359
+miluv obstacles_1_random3_0b | 0.130 | 0.639 | 0.252
+miluv default_1_random3_2 | 0.135 | diverged | 0.258
+miluv default_1_remoteControlHighPace_2 | 0.244 | 0.763 | 1.409
+miluv noAprilTags_1_random3_2b | 0.130 | 0.368 | 0.241
+miluv noAprilTags_1_remoteControlHighPace_2b | 0.191 | 1.144 | 0.273
+miluv median | KIMS 0.135 | SFUISE 0.704 | EKF IMU+UWB+height (paper) 0.258
+miluv >1 m (diverged >100 m) | KIMS 0 (0) | SFUISE 4 (3) | EKF IMU+UWB+height (paper) 3 (0)
+miluv KIMS lower than | SFUISE 13/13 | EKF IMU+UWB+height (paper) 13/13
+miluv reference: devkit EKF IMU+UWB without height (our run) median 0.648, KIMS lower 13/13
+ntu eee_01 | 0.204 | 0.126
+ntu eee_02 | 0.367 | 2.537
+ntu eee_03 | 1.845 | 1.144
+ntu nya_01 | 0.791 | diverged
+ntu nya_02 | 3.084 | 0.395
+ntu nya_03 | 0.903 | diverged
+ntu sbs_01 | 0.190 | 0.207
+ntu sbs_02 | 0.409 | 3.109
+ntu sbs_03 | 0.435 | 3.146
+ntu median | KIMS 0.435 | SFUISE 2.537
+ntu >1 m (diverged >100 m) | KIMS 2 (0) | SFUISE 6 (2)
+ntu KIMS lower than | SFUISE 6/9
+util const1 tdoa2 n=6 | 0.104 | 0.101 | 0.113
+util const1 tdoa3 n=6 | 0.104 | 0.099 | 0.140
+util const2 tdoa2 n=6 | 0.103 | 0.102 | 0.107
+util const2 tdoa3 n=6 | 0.092 | 0.088 | 0.117
+util const3 tdoa2 n=8 | 0.200 | 0.179 | 0.217
+util const3 tdoa3 n=8 | 0.179 | 0.183 | 0.229
+util const4 tdoa2 n=21 | 0.286 | 0.240 | 0.473
+util const4 tdoa3 n=18 | 0.250 | 0.218 | 0.501
+util median | KIMS 0.187 | SFUISE 0.184 | ESKF (UTIL paper Table 4) 0.220
+util >1 m (diverged >100 m) | KIMS 0 (0) | SFUISE 6 (5) | ESKF (UTIL paper Table 4) 0 (0)
+util KIMS lower than | SFUISE 33/79 | ESKF (UTIL paper Table 4) 78/79
+util reference: devkit ESKF, our run of the released code, median 0.217, KIMS lower 78/79 (used in the figures)
+iului SquareTurn | 0.120 | 0.106
+iului CircleSpin | 0.118 | 0.235
+iului AC3_125000 | 0.128 | 0.300
+iului median | KIMS 0.120 | SFUISE 0.235
+iului >1 m (diverged >100 m) | KIMS 0 (0) | SFUISE 0 (0)
+iului KIMS lower than | SFUISE 2/3

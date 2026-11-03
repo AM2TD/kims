@@ -2,7 +2,9 @@
 #include "node_util.h"
 
 #include <Eigen/Dense>
+#include <algorithm>
 #include <chrono>
+#include <cstdio>
 #include <cmath>
 #include <fstream>
 #include <iostream>
@@ -31,6 +33,7 @@ struct DimsDyn {
     static MatM15 zeroM15(int d)       { return MatM15::Zero(d, 15); }
 };
 
+static double g_floor_penalty = 0.0;
 struct EKFState {
     Eigen::Vector3d p = Eigen::Vector3d::Zero();
     Eigen::Matrix3d R = Eigen::Matrix3d::Identity();
@@ -127,7 +130,8 @@ public:
         F_accum_ = Fk * F_accum_;
 
         Mat15 Q = Mat15::Zero();
-        Q.block<3, 3>(3, 3)   = Eigen::Matrix3d::Identity() * std_acc_ * std_acc_ * dt * dt;
+        const double s_att = fix_q_ ? std_gyr_ : std_acc_;   // published runs used std_acc here (attitude noise); fix_q_ uses the gyro std
+        Q.block<3, 3>(3, 3)   = Eigen::Matrix3d::Identity() * s_att * s_att * dt * dt;
         Q.block<3, 3>(6, 6)   = Eigen::Matrix3d::Identity() * std_acc_ * std_acc_ * dt * dt;
         Q.block<3, 3>(9, 9)   = Eigen::Matrix3d::Identity() * 1e-6;
         Q.block<3, 3>(12, 12) = Eigen::Matrix3d::Identity() * 1e-6;
@@ -177,10 +181,47 @@ public:
         covP_ -= K * H * covP_;
         covP_  = 0.5 * (covP_ + covP_.transpose());
 
+        // floor prior (ablation, floor_w_ > 0): one-sided pseudo-measurement z = 0 with variance 1/floor_penalty when z < 0
+        if (floor_w_ > 0.0 && state.p.z() < 0.0) {
+            Eigen::Matrix<double, 1, 15> Hf = Eigen::Matrix<double, 1, 15>::Zero(); Hf(0, 2) = 1.0;
+            const double Sf = (Hf * covP_ * Hf.transpose())(0, 0) + 1.0 / floor_w_;
+            Eigen::Matrix<double, 15, 1> Kf = covP_ * Hf.transpose() / Sf;
+            Eigen::VectorXd dxf = Kf * (0.0 - state.p.z());
+            state  = phi(state, dxf);
+            covP_ -= Kf * Hf * covP_;
+            covP_  = 0.5 * (covP_ + covP_.transpose());
+        }
         fd.x_filt    = state;
         fd.P_filt    = covP_;
         fd.timestamp = ts;
     }
+    // One fresh range of tag t to anchor a (fresh_only:=1): scalar update with a Mahalanobis gate |nu|/sqrt(S) < gate
+    // (gate <= 0: no gate). Replaces the published update that re-used the latest value of every pair at each event.
+    void scalarUpdate(int t, int a, double z, double sigma, double gate, ForwardData& fd, double ts) {
+        const Eigen::Vector3d tw = state.p + state.R * tag_off_[t];
+        const Eigen::Vector3d diff = tw - anchors_[a];
+        const double dist = diff.norm();
+        if (dist > 1e-6) {
+            Eigen::Matrix<double, 1, 15> H = Eigen::Matrix<double, 1, 15>::Zero();
+            const Eigen::RowVector3d uv = diff.transpose() / dist;
+            H.block<1, 3>(0, 0) = uv;
+            H.block<1, 3>(0, 3) = -uv * state.R * skew(tag_off_[t]);
+            const double S = (H * covP_ * H.transpose())(0, 0) + sigma * sigma;
+            const double nu = z - dist;
+            if (gate <= 0.0 || std::abs(nu) / std::sqrt(S) < gate) {
+                const Eigen::Matrix<double, 15, 1> K = covP_ * H.transpose() / S;
+                state = phi(state, K * nu);
+                covP_ -= K * H * covP_;
+                covP_ = 0.5 * (covP_ + covP_.transpose());
+                ++n_used_;
+            } else ++n_gated_;
+        }
+        fd.x_filt = state; fd.P_filt = covP_; fd.timestamp = ts;
+    }
+    long n_used_ = 0, n_gated_ = 0;
+    bool fix_q_ = false;
+    void setFloor(double w) { floor_w_ = w; }
+    double floor_w_ = 0.0;
 
     static std::vector<EKFState> rtsSmooth(const std::vector<ForwardData>& fwd) {
         const int N = static_cast<int>(fwd.size());
@@ -230,9 +271,21 @@ static int runEkf(const std::map<std::string, std::string>& args,
     ekf.setUwbVar(std_uwb);
     ekf.setStdAcc(std_acc);
     ekf.setStdGyr(std_gyr);
+    ekf.setFloor(g_floor_penalty);   // floor_penalty:=w (ablation)
     ekf.state.p = init_p;
-    if (z_down)
-        ekf.state.R = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()).toRotationMatrix();
+    ekf.state.R = initialAttitude(imu_data, z_down, getArg<double>(args, "align_still", 0.0),   // same start attitude as KIMS
+                                  getArg<double>(args, "init_yaw", 0.0));
+    ekf.fix_q_ = getArg<int>(args, "fix_q", 0) != 0;
+    const bool fresh_only = getArg<int>(args, "fresh_only", 0) != 0;
+    const double gate = getArg<double>(args, "gate", 0.0);
+    if (getArg<int>(args, "still_bias", 0) != 0 && !imu_data.empty()) {   // KIMS still_bias: rest-phase gyro mean, |a| - g along gravity
+        const double still = std::max(getArg<double>(args, "align_still", 3.0), 0.5);
+        Eigen::Vector3d am = Eigen::Vector3d::Zero(), gm = Eigen::Vector3d::Zero(); int n = 0;
+        for (const auto& d : imu_data) { if (d.timestamp > imu_data.front().timestamp + still) break; am += d.acc; gm += d.gyr; ++n; }
+        if (n > 0) { am /= n; gm /= n; ekf.state.w_b = gm; ekf.state.a_b = am - ekf.state.R.transpose() * Eigen::Vector3d(0, 0, 9.81); }
+    }
+    std::printf("[EKF-RTS] fix_q %d fresh_only %d gate %.1f still_bias %d std_uwb %.3f\n", (int)ekf.fix_q_, (int)fresh_only, gate,
+                getArg<int>(args, "still_bias", 0), std_uwb);
 
     auto fwd_t0 = std::chrono::high_resolution_clock::now();
     std::vector<ForwardData> fwd;
@@ -273,7 +326,14 @@ static int runEkf(const std::map<std::string, std::string>& args,
             ekf.endPeriod(fd);
             period_open = false;
 
-            if (latest.allValid()) {
+            if (fresh_only) {
+                const auto ti = std::find(tag_ids.begin(), tag_ids.end(), uwb.from_id);
+                const auto ai = std::find(anchor_ids.begin(), anchor_ids.end(), uwb.to_id);
+                if (ti != tag_ids.end() && ai != anchor_ids.end() && uwb.range > 0.0) {
+                    ekf.scalarUpdate(int(ti - tag_ids.begin()), int(ai - anchor_ids.begin()), uwb.range, std_uwb, gate, fd, uwb.timestamp);
+                    fwd.push_back(fd);
+                }
+            } else if (latest.allValid()) {
                 typename D::VecM z = D::vec(dim);
                 const double* r = latest.data();
                 for (int i = 0; i < dim; ++i) z(i) = r[i];
@@ -291,7 +351,35 @@ static int runEkf(const std::map<std::string, std::string>& args,
     }
 
     auto rts_t0 = std::chrono::high_resolution_clock::now();
-    std::vector<EKFState> smoothed = EKF<D>::rtsSmooth(fwd);
+    // lag:=L > 0: fixed-lag RTS in a sliding window (real time, like KIMS): the estimate of step j uses the measurements up to
+    // step j + L only; at the end of the data the last window is flushed (KIMS's last-window flush). Smoother gains are formed
+    // once per step from the forward pass. lag:=0 (default) keeps the full-trajectory RTS of the published runs.
+    const int lag = getArg<int>(args, "lag", 0);
+    std::vector<EKFState> smoothed;
+    double lag_pass_max_ms = 0.0;
+    if (lag > 0 && static_cast<int>(fwd.size()) > lag) {
+        const int N = static_cast<int>(fwd.size());
+        std::vector<Mat15> G(N);
+        for (int k = 0; k + 1 < N; ++k) G[k] = fwd[k + 1].D * fwd[k + 1].P_pred.ldlt().solve(Mat15::Identity());
+        smoothed.assign(N, EKFState());
+        for (int k = lag; k < N; ++k) {
+            const auto tp = std::chrono::high_resolution_clock::now();
+            EKFState xs = fwd[k].x_filt;
+            if (k == N - 1) smoothed[k] = xs;
+            for (int j = k - 1; j >= k - lag; --j) {
+                Eigen::VectorXd delta = EKF<D>::phiInv(xs, fwd[j + 1].x_pred);
+                xs = EKF<D>::phi(fwd[j].x_filt, G[j] * delta);
+                if (k == N - 1) smoothed[j] = xs;            // flush of the last window
+            }
+            if (k < N - 1) smoothed[k - lag] = xs;
+            lag_pass_max_ms = std::max(lag_pass_max_ms, std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - tp).count());
+        }
+        for (int k = 0; k < lag && k < N; ++k)               // the first steps before a full window: forward estimate + same pass
+            if (smoothed[k].p.isZero() && k < lag) { EKFState xs = fwd[lag].x_filt; for (int j = lag - 1; j >= k; --j) xs = EKF<D>::phi(fwd[j].x_filt, G[j] * EKF<D>::phiInv(xs, fwd[j + 1].x_pred)); smoothed[k] = xs; }
+        std::printf("[EKF-RTS] fixed lag %d steps, max per-step backward pass %.3f ms\n", lag, lag_pass_max_ms);
+    } else {
+        smoothed = EKF<D>::rtsSmooth(fwd);
+    }
     double rts_ms = std::chrono::duration<double, std::milli>(
                         std::chrono::high_resolution_clock::now() - rts_t0).count();
 
@@ -320,6 +408,7 @@ int main(int argc, char** argv) {
     auto args = parseArgs(argc, argv);
     const std::string dataset = getArg<std::string>(args, "dataset", std::string("iului"));
     const std::string output_file = getArg<std::string>(args, "output_file", std::string("ekf_pose.txt"));
+    g_floor_penalty = getArg<double>(args, "floor_penalty", 0.0);
 
     std::vector<ImuData>  imu_data;
     std::vector<UwbRange> uwb_data;

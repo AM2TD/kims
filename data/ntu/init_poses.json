@@ -1,0 +1,66 @@
+{
+ "_comment": "NTU VIRAL start poses used by the paper (UWB frame W; yaw in degrees). eee: first Leica position with the prism offset removed; nya and sbs: GT-free tag-array fit of the rest-phase ranges (scripts/revision/ntu_still_init.py), z set to 0.2 m.",
+ "eee_01": {
+  "init_x": 28.871,
+  "init_y": -2.619,
+  "init_z": 0.692,
+  "init_yaw": 74.0,
+  "anchor_file": "data/ntu/anchors_eee.txt"
+ },
+ "eee_02": {
+  "init_x": 28.802,
+  "init_y": -2.808,
+  "init_z": 0.168,
+  "init_yaw": -7.5,
+  "anchor_file": "data/ntu/anchors_eee.txt"
+ },
+ "eee_03": {
+  "init_x": 28.574,
+  "init_y": -1.826,
+  "init_z": 0.352,
+  "init_yaw": 100.0,
+  "anchor_file": "data/ntu/anchors_eee.txt"
+ },
+ "nya_01": {
+  "init_x": 6.468,
+  "init_y": -2.934,
+  "init_z": 0.2,
+  "init_yaw": 195.0,
+  "anchor_file": "data/ntu/anchors_nya_01.txt"
+ },
+ "nya_02": {
+  "init_x": 7.302,
+  "init_y": -2.005,
+  "init_z": 0.2,
+  "init_yaw": 78.0,
+  "anchor_file": "data/ntu/anchors_nya_02.txt"
+ },
+ "nya_03": {
+  "init_x": 6.805,
+  "init_y": -3.815,
+  "init_z": 0.2,
+  "init_yaw": 294.0,
+  "anchor_file": "data/ntu/anchors_nya_03.txt"
+ },
+ "sbs_01": {
+  "init_x": 19.312,
+  "init_y": -9.862,
+  "init_z": 0.2,
+  "init_yaw": 90.0,
+  "anchor_file": "data/ntu/anchors_sbs_01.txt"
+ },
+ "sbs_02": {
+  "init_x": 16.039,
+  "init_y": -12.987,
+  "init_z": 0.2,
+  "init_yaw": 116.0,
+  "anchor_file": "data/ntu/anchors_sbs_02.txt"
+ },
+ "sbs_03": {
+  "init_x": 13.874,
+  "init_y": -8.847,
+  "init_z": 0.2,
+  "init_yaw": 111.0,
+  "anchor_file": "data/ntu/anchors_sbs_03.txt"
+ }
+}

@@ -1,0 +1,5 @@
+# NTU VIRAL (VectorNav VN-100, 200 Hz). Datasheet-level values.
+acc_noise_density: 0.014     # m/s^2/sqrt(Hz)
+acc_bias_rw: 0.0004          # m/s^3/sqrt(Hz)
+gyr_noise_density: 0.00061   # rad/s/sqrt(Hz)
+gyr_bias_rw: 0.00002         # rad/s^2/sqrt(Hz)

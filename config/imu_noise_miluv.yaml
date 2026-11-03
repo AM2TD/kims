@@ -1,0 +1,25 @@
+# MILUV, ifo001 Pixhawk 4 (PX4) IMU, /ifo001/mavros/imu/data_raw (imu_px4.csv).
+# Allan-variance analysis of a 16-hour static recording: Shalaby et al., "MILUV", IJRR 2025
+# (arXiv 2504.14376), Table 3 (noise) and Table 4 (bias); identical to the devkit
+# config/imu/ifo001/px4_output.log. Units converted to SI (deg -> rad).
+#
+# The scalar fields keep the devkit convention (px4_imu.yaml): the worst axis (z).
+# Per-axis values follow.
+acc_noise_density: 0.00240      # m/s^2/sqrt(Hz)   velocity random walk, z (x 0.00164, y 0.00173)
+acc_bias_rw: 0.00023            # m/s^3/sqrt(Hz)   accel random walk, x (y 0.00014, z 0.00015)
+gyr_noise_density: 0.000545582  # rad/s/sqrt(Hz)   angle random walk, z = 0.03126 deg/sqrt(s)
+gyr_bias_rw: 0.0000363          # rad/s^2/sqrt(Hz) rate random walk, z = 0.00208 deg/s/sqrt(s)
+
+acc_noise_density_x: 0.00164
+acc_noise_density_y: 0.00173
+acc_noise_density_z: 0.00240
+gyr_noise_density_x: 0.000139452   # 0.00799 deg/sqrt(s)
+gyr_noise_density_y: 0.000126187   # 0.00723 deg/sqrt(s)
+gyr_noise_density_z: 0.000545582   # 0.03126 deg/sqrt(s)
+
+acc_bias_instability_x: 0.00072    # m/s^2, correlation time 6.9 s
+acc_bias_instability_y: 0.00073    # m/s^2, correlation time 94.6 s
+acc_bias_instability_z: 0.00083    # m/s^2, correlation time 110.6 s
+gyr_bias_instability_x: 0.0000353  # rad/s (0.00202 deg/s), correlation time 56.5 s
+gyr_bias_instability_y: 0.0000295  # rad/s (0.00169 deg/s), correlation time 70.9 s
+gyr_bias_instability_z: 0.000183   # rad/s (0.01050 deg/s), correlation time 22.0 s

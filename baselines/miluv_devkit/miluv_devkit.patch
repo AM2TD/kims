@@ -1,0 +1,51 @@
+diff --git a/config/uwb/anchors.yaml b/config/uwb/anchors.yaml
+index 7bf7a85..bc1f2c1 100644
+--- a/config/uwb/anchors.yaml
++++ b/config/uwb/anchors.yaml
+@@ -26,8 +26,8 @@
+ "2":
+     "0": "[3.28161572265625, 0.8334449462890625, 1.2502938232421875]"
+     "1": "[3.0746474609375, -0.40140902709960937, 1.9075947265625]"
+-    "2": "[-3.143182861328125, -2.721824951171875, 1.3383465576171875]"
+-    "3": "[-2.332289794921875, -3.3927958984375, 1.845730712890625]"
++    "2": "[-2.332289794921875, -3.3927958984375, 1.845730712890625]"
++    "3": "[-3.143182861328125, -2.721824951171875, 1.3383465576171875]"
+     "4": "[-1.79465478515625, 4.198333984375, 1.8233143310546875]"
+     "5": "[-0.29467779541015625, 4.1459013671875, 1.2259888916015625]"
+ 
+diff --git a/examples/ekfutils/common.py b/examples/ekfutils/common.py
+index 9191fae..596550a 100644
+--- a/examples/ekfutils/common.py
++++ b/examples/ekfutils/common.py
+@@ -1,3 +1,4 @@
++from __future__ import annotations
+ import numpy as np
+ from scipy.stats import chi2
+ import pandas as pd
+diff --git a/examples/ekfutils/imu_one_robot_models.py b/examples/ekfutils/imu_one_robot_models.py
+index 8a898e6..3dde69f 100644
+--- a/examples/ekfutils/imu_one_robot_models.py
++++ b/examples/ekfutils/imu_one_robot_models.py
+@@ -1,3 +1,4 @@
++from __future__ import annotations
+ import os
+ import numpy as np
+ import matplotlib.pyplot as plt
+diff --git a/miluv/data.py b/miluv/data.py
+index 240de0f..90ad0f4 100644
+--- a/miluv/data.py
++++ b/miluv/data.py
+@@ -1,3 +1,4 @@
++from __future__ import annotations
+ import miluv.utils as utils
+ 
+ import pandas as pd
+diff --git a/miluv/utils.py b/miluv/utils.py
+index efdd647..58242f0 100644
+--- a/miluv/utils.py
++++ b/miluv/utils.py
+@@ -1,3 +1,4 @@
++from __future__ import annotations
+ import numpy as np
+ from csaps import csaps
+ from csaps import ISmoothingSpline

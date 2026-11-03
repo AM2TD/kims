@@ -12,6 +12,7 @@
 #include <string>
 #include <cmath>
 #include <chrono>
+#include <cstdio>
 
 
 struct Particle {
@@ -147,6 +148,17 @@ int main(int argc, char** argv) {
     double sigma_gyro  = getArg<double>(args, "sigma_gyro", 0.01);
     double ess_thresh  = getArg<double>(args, "ess_thresh", is_bag ? 0.7 : 0.5);
     int    smooth_lag  = getArg<int>   (args, "smooth_lag", 15);
+    const bool fresh_only = getArg<int>(args, "fresh_only", 0) != 0;
+    if (getArg<int>(args, "still_bias", 0) != 0 && !imu_data.empty()) {   // KIMS still_bias: remove the rest-phase gyro mean and
+        const double still = std::max(getArg<double>(args, "align_still", 3.0), 0.5);   // the accelerometer magnitude error
+        Eigen::Vector3d am = Eigen::Vector3d::Zero(), gm = Eigen::Vector3d::Zero(); int n = 0;
+        for (const auto& d : imu_data) { if (d.timestamp > imu_data.front().timestamp + still) break; am += d.acc; gm += d.gyr; ++n; }
+        if (n > 0) {
+            am /= n; gm /= n; const Eigen::Vector3d ba = (am.norm() - 9.81) * am.normalized();
+            for (auto& d : imu_data) { d.gyr -= gm; d.acc -= ba; }
+            std::printf("[PS] still_bias: gyro %.5f %.5f %.5f, |a|-g %.3f\n", gm.x(), gm.y(), gm.z(), am.norm() - 9.81);
+        }
+    }
     double init_x      = getArg<double>(args, "init_x", 0.0);
     double init_y      = getArg<double>(args, "init_y", 0.0);
     double init_z      = getArg<double>(args, "init_z", 0.0);
@@ -157,9 +169,8 @@ int main(int argc, char** argv) {
     std::normal_distribution<> vel_dist(0.0, 0.1);
 
     std::vector<Particle, Eigen::aligned_allocator<Particle>> particles(N_part);
-    const Eigen::Quaterniond q_init =
-        is_ntu ? Eigen::Quaterniond(Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()))
-               : Eigen::Quaterniond::Identity();
+    const Eigen::Quaterniond q_init(initialAttitude(imu_data, is_ntu, getArg<double>(args, "align_still", 0.0),   // same start
+                                                    getArg<double>(args, "init_yaw", 0.0)));                      // attitude as KIMS
 
     for (auto& p : particles) {
         p.position    = Eigen::Vector3d(init_x + pos_dist(gen),
@@ -225,14 +236,26 @@ int main(int argc, char** argv) {
         while (uwb_ptr < uwb_raw.size() &&
                uwb_raw[uwb_ptr].timestamp <= im.timestamp) {
             latest.update(uwb_raw[uwb_ptr]);
+            const UwbRange cur = uwb_raw[uwb_ptr];
             ++uwb_ptr;
             ++uwb_trigger;
 
-            if (!latest.allValid()) continue;
+            if (!fresh_only && !latest.allValid()) continue;
 
             auto t0s = std::chrono::high_resolution_clock::now();
 
             const double* ranges = latest.data();
+            if (fresh_only) {   // fresh_only:=1: Gaussian likelihood of the one new range (sigma_uwb); the published update
+                                // re-used the latest value of every pair at each event, averaged over the pairs
+                const auto ti = std::find(tag_ids.begin(), tag_ids.end(), cur.from_id);
+                const auto ai = std::find(anchor_ids.begin(), anchor_ids.end(), cur.to_id);
+                if (ti == tag_ids.end() || ai == anchor_ids.end() || cur.range < 0.1 || cur.range > max_rng) continue;
+                const int t = int(ti - tag_ids.begin()), a = int(ai - anchor_ids.begin());
+                for (auto& p : particles) {
+                    const double e = (p.position + p.orientation * tag_off[t] - anchors[a]).norm() - cur.range;
+                    p.weight *= std::exp(-0.5 * e * e / (sigma_uwb * sigma_uwb));
+                }
+            } else
             for (auto& p : particles) {
                 double total_err = 0.0;
                 int valid = 0;
