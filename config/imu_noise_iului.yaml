@@ -1,7 +1,0 @@
-# IMU noise parameters used to derive the input-compensation penalty sigma_u.
-# Values estimated from the IULUI static segments and mocap residuals (mavros IMU, 55 Hz);
-# replace with Allan-variance results when available.
-acc_noise_density: 0.040     # m/s^2/sqrt(Hz)   (0.30 m/s^2 per sample at 55 Hz)
-acc_bias_rw: 0.003           # m/s^3/sqrt(Hz)
-gyr_noise_density: 0.0013    # rad/s/sqrt(Hz)   (0.01 rad/s per sample at 55 Hz)
-gyr_bias_rw: 0.0001          # rad/s^2/sqrt(Hz)

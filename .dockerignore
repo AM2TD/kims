@@ -2,11 +2,12 @@
 build
 build_*
 result/*
-!result/final
+!result/reference_tables.txt
 data/miluv
 data/ntu
 data/util
 data/util_*
+data/iului/bags
 docs/assets
 **/__pycache__
 *.pyc

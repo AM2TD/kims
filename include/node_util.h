@@ -1,7 +1,3 @@
-// @file node_util.h
-// @brief Argument parsing, timing output and the skew operator, shared by the
-//        baseline nodes. Estimator math stays in each node.
-
 #pragma once
 
 #include <Eigen/Core>
@@ -62,9 +58,6 @@ inline Eigen::Matrix3d skew(const Eigen::Vector3d& v) {
     return m;
 }
 
-// Initial body attitude shared by the baselines, the rule kims_node uses: tilt from the mean accelerometer over the first
-// align_still seconds (a z-down IMU is flipped first), then init_yaw degrees about world z. align_still <= 0 and
-// init_yaw 0 keep the old default: identity, or the 180 deg flip about x for a z-down IMU.
 template <class ImuVec>
 inline Eigen::Matrix3d initialAttitude(const ImuVec& imu, bool z_down, double align_still, double init_yaw_deg) {
     Eigen::Matrix3d Rb = Eigen::Matrix3d::Identity();

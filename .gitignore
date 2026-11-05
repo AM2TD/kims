@@ -21,7 +21,8 @@ data/ntu/*
 !data/ntu/
 !data/ntu/anchors_*.txt
 !data/ntu/init_poses.json
+!data/ntu/init_fit.json
 
-# run outputs: only the curated final tables and figures ship (result/final/)
+# run outputs: only the reference tables ship
 result/*
-!result/final/
+!result/reference_tables.txt

@@ -1,5 +1,3 @@
-# Driver: the devkit's IMU+UWB(+height) EKF for one experiment, dumping the position and attitude history for external scoring.
-# usage: python3 run_ekf_dump.py <exp_name> <out_csv> [noheight]
 from __future__ import annotations
 import sys, numpy as np, pandas as pd
 from scipy.spatial.transform import Rotation
@@ -29,7 +27,7 @@ for i in range(len(qt)):
         if ht[hi] == qt[i] and use_height: ekf.correct({"height": float(hr[hi])})
         hi += 1
     P = np.array(ekf.pose); G = np.array(gt_se23[i]); p = P[:3, 4]; g = G[:3, 4]
-    q = Rotation.from_matrix(P[:3, :3]).as_quat(); gq = Rotation.from_matrix(G[:3, :3]).as_quat()   # x, y, z, w
+    q = Rotation.from_matrix(P[:3, :3]).as_quat(); gq = Rotation.from_matrix(G[:3, :3]).as_quat()
     rows.append([qt[i], p[0], p[1], p[2], g[0], g[1], g[2], *q, *gq])
 pd.DataFrame(rows, columns=["t", "x", "y", "z", "gx", "gy", "gz", "qx", "qy", "qz", "qw", "gqx", "gqy", "gqz", "gqw"]).to_csv(out, index=False)
 e = np.array(rows)[:, 1:4] - np.array(rows)[:, 4:7]

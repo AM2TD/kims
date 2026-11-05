@@ -1,0 +1,49 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+      Cell Size: 1
+      Plane Cell Count: 10
+      Enabled: true
+    - Class: rviz/Path
+      Name: KIMS path
+      Topic: /kims_online/path
+      Color: 192; 57; 43
+      Line Width: 0.03
+      Line Style: Billboards
+      Enabled: true
+    - Class: rviz/Pose
+      Name: KIMS pose (newest epoch)
+      Topic: /kims_online/pose_now
+      Color: 192; 57; 43
+      Shape: Axes
+      Axes Length: 0.4
+      Axes Radius: 0.03
+      Enabled: true
+    - Class: rviz/Path
+      Name: Ground truth
+      Topic: /kims_online/ground_truth_path
+      Color: 90; 90; 90
+      Line Width: 0.02
+      Line Style: Billboards
+      Enabled: true
+  Enabled: true
+  Global Options:
+    Fixed Frame: world
+    Frame Rate: 30
+  Name: root
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 9
+      Pitch: 0.6
+      Yaw: 0.8
+      Focal Point: {X: 0, Y: 0, Z: 1}
+    Saved: ~
+Window Geometry:
+  Height: 800
+  Width: 1200

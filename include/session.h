@@ -13,7 +13,7 @@ struct Session {
     std::vector<GtPose>   gt;
 
     std::vector<double> anchors;
-    std::vector<double> anchorsB;     // TDOA (dataset util): anchor B of every slot; anchors holds anchor A
+    std::vector<double> anchorsB;
     std::vector<double> tag_offsets;
     int tdoa = 0;
     int num_anchors = 0;
@@ -192,8 +192,7 @@ inline bool loadAnchorFile(const std::string& path, std::vector<double>& out, in
     return static_cast<int>(out.size()) == 3 * expected;
 }
 
-
-inline bool loadSession(const std::map<std::string, std::string>& a, Session& s) {
+inline bool loadSession(const std::map<std::string, std::string>& a, Session& s, bool load_data = true) {
     const std::string dataset = getArg<std::string>(a, "dataset", "iului");
 
     if (dataset == "iului") {
@@ -207,20 +206,22 @@ inline bool loadSession(const std::map<std::string, std::string>& a, Session& s)
             s.anchors[3 * i + 2] = getArg<double>(a, p + "z", 0.0);
         }
         const std::string dir = getArg<std::string>(a, "data_dir", "");
-        if (dir.empty()) {
+        if (dir.empty() && load_data) {
             std::cerr << "[kims] data_dir is required\n"; return false;
         }
         std::vector<int> tag_ids = {getArg<int>(a, "tag0_id", 8),
                                     getArg<int>(a, "tag1_id", 9)};
         std::vector<int> anchor_ids;
         for (int i = 0; i < s.num_anchors; ++i) anchor_ids.push_back(i);
-        if (!loadImuCsv(dir + "/imu.csv", s.imu)) return false;
-        if (!loadUwbCsv(dir + "/uwb_range.csv", tag_ids, anchor_ids, s.uwb)) return false;
-        loadMocapCsv(dir + "/mocap.csv", s.gt);
+        if (load_data) {
+            if (!loadImuCsv(dir + "/imu.csv", s.imu)) return false;
+            if (!loadUwbCsv(dir + "/uwb_range.csv", tag_ids, anchor_ids, s.uwb)) return false;
+            loadMocapCsv(dir + "/mocap.csv", s.gt);
+        }
     } else if (dataset == "miluv" || dataset == "ntu") {
         const std::string dir = getArg<std::string>(a, "data_dir", "");
         const std::string anchor_file = getArg<std::string>(a, "anchor_file", "");
-        if (dir.empty() || anchor_file.empty()) {
+        if ((dir.empty() && load_data) || anchor_file.empty()) {
             std::cerr << "[kims] data_dir and anchor_file are required\n"; return false;
         }
         std::vector<int> tag_ids, anchor_ids;
@@ -234,7 +235,7 @@ inline bool loadSession(const std::map<std::string, std::string>& a, Session& s)
             imu_csv = dir + "/imu_px4.csv";
             uwb_csv = dir + "/uwb_range.csv";
         } else {
-            s.num_tags = getArg<int>(a, "num_tags", 4);           // num_tags:=1 keeps tag0 only (single-tag test)
+            s.num_tags = getArg<int>(a, "num_tags", 4);
             s.num_anchors = 3;
             for (int i = 0; i < s.num_tags; ++i)
                 tag_ids.push_back(getArg<int>(a, "tag" + std::to_string(i) + "_id", 2000 + i));
@@ -244,16 +245,16 @@ inline bool loadSession(const std::map<std::string, std::string>& a, Session& s)
             uwb_csv = dir + "/uwb_range.csv";
         }
         if (!loadAnchorFile(anchor_file, s.anchors, s.num_anchors)) return false;
-        if (!loadImuCsv(imu_csv, s.imu)) return false;
-        if (!loadUwbCsv(uwb_csv, tag_ids, anchor_ids, s.uwb)) return false;
-        if (dataset == "miluv") loadMocapCsv(dir + "/mocap.csv", s.gt);
-        else                    loadLeicaCsv(dir + "/leica.csv", s.gt);
+        if (load_data) {
+            if (!loadImuCsv(imu_csv, s.imu)) return false;
+            if (!loadUwbCsv(uwb_csv, tag_ids, anchor_ids, s.uwb)) return false;
+            if (dataset == "miluv") loadMocapCsv(dir + "/mocap.csv", s.gt);
+            else                    loadLeicaCsv(dir + "/leica.csv", s.gt);
+        }
     } else if (dataset == "util") {
-        // UTIL (UWB TDOA, one tag): every "anchor" is an anchor-pair slot (A, B) measuring |tag - B| - |tag - A|,
-        // stored shifted by TDOA_SHIFT so that a valid value stays > 0 (scripts/revision/util_prepare.py)
         const std::string dir = getArg<std::string>(a, "data_dir", "");
         const std::string fa = getArg<std::string>(a, "anchor_file", ""), fb = getArg<std::string>(a, "anchor_b_file", "");
-        if (dir.empty() || fa.empty() || fb.empty()) {
+        if ((dir.empty() && load_data) || fa.empty() || fb.empty()) {
             std::cerr << "[kims] util needs data_dir, anchor_file and anchor_b_file\n"; return false;
         }
         s.num_tags = 1; s.num_anchors = getArg<int>(a, "num_anchors", 8); s.tdoa = 1;
@@ -262,9 +263,11 @@ inline bool loadSession(const std::map<std::string, std::string>& a, Session& s)
         if (!loadAnchorFile(fa, s.anchors, s.num_anchors) || !loadAnchorFile(fb, s.anchorsB, s.num_anchors)) {
             std::cerr << "[kims] util slot files must hold num_anchors rows\n"; return false;
         }
-        if (!loadImuCsv(dir + "/imu.csv", s.imu)) return false;
-        if (!loadUwbCsv(dir + "/uwb_range.csv", tag_ids, anchor_ids, s.uwb)) return false;
-        loadLeicaCsv(dir + "/gt.csv", s.gt);
+        if (load_data) {
+            if (!loadImuCsv(dir + "/imu.csv", s.imu)) return false;
+            if (!loadUwbCsv(dir + "/uwb_range.csv", tag_ids, anchor_ids, s.uwb)) return false;
+            loadLeicaCsv(dir + "/gt.csv", s.gt);
+        }
     } else {
         std::cerr << "[kims] unknown dataset: " << dataset << "\n";
         return false;
