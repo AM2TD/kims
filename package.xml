@@ -4,23 +4,20 @@
   <version>1.0.0</version>
   <description>
     KIMS: Kinematics-Constrained MPPI Smoothing for UWB-IMU 6-DoF Pose Estimation.
-    Offline evaluation of KIMS on MILUV, NTU VIRAL, UTIL and IULUI, with the
-    first-submission EKF-RTS, particle-smoothing and SW-PGO baselines.
-    The tools read CSV and build without ROS.
+    UWB-IMU fixed-lag smoother. Offline tools (KIMS, matched LM, SW-PGO,
+    particle filter) that read CSV and build without ROS, and the online ROS
+    node kims_online for IMU and Nooploop LinkTrack topics or bags.
   </description>
   <maintainer email="anonymous@anonymous.invalid">Anonymous</maintainer>
   <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>message_generation</build_depend>
-  <exec_depend>message_runtime</exec_depend>
   <depend>roscpp</depend>
-  <depend>rospy</depend>
-  <depend>roslib</depend>
-  <depend>std_msgs</depend>
+  <depend>rosbag</depend>
+  <depend>topic_tools</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>tf2_ros</depend>
   <depend>nav_msgs</depend>
-  <depend>nlink_parser</depend>
+  <exec_depend>rviz</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
 </package>

@@ -1,0 +1,33 @@
+<launch>
+  <arg name="seq"  default="SquareTurn"/>
+  <arg name="mode" default="bag"/>
+  <arg name="rate" default="1.0"/>
+  <arg name="bag"  default="$(find kims)/data/iului/bags/$(arg seq).bag"/>
+  <arg name="label" default="online"/>
+  <arg name="set"  default=""/>
+  <arg name="rviz" default="false"/>
+
+  <param name="use_sim_time" value="true" if="$(eval mode == 'play')"/>
+
+  <node pkg="kims" type="kims_online" name="kims_online" output="screen" required="true">
+    <env name="OMP_NUM_THREADS" value="8"/>
+    <param name="args" command="python3 $(find kims)/scripts/run.py kims iului $(arg seq) --label $(arg label) --args-only print_every:=100"/>
+    <param name="set"  value="$(arg set)"/>
+    <param name="bag"  value="$(arg bag)" if="$(eval mode == 'bag')"/>
+    <param name="rate" value="$(arg rate)"/>
+    <param name="imu_topic" value="/mavros/imu/data"/>
+    <param name="uwb_topic" value="/nlink_linktrack_tagframe0"/>
+    <param name="frame_id"  value="world"/>
+    <param name="idle_timeout" value="2.0" if="$(eval mode == 'play')"/>
+  </node>
+
+  <node pkg="rosbag" type="play" name="player" args="--clock --delay 2 -r $(arg rate) $(arg bag)"
+        if="$(eval mode == 'play')"/>
+
+  <group if="$(arg rviz)">
+    <node pkg="tf2_ros" type="static_transform_publisher" name="world_frame" args="0 0 0 0 0 0 world kims_world"/>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find kims)/launch/kims_online.rviz">
+      <env name="DISABLE_ROS1_EOL_WARNINGS" value="1"/>
+    </node>
+  </group>
+</launch>

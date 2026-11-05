@@ -1,0 +1,65 @@
+{
+ "eee_01": {
+  "init_x": 28.885,
+  "init_y": -3.08,
+  "init_z": -50.842,
+  "init_yaw": 281.0,
+  "anchor_file": "data/ntu/anchors_eee.txt"
+ },
+ "eee_02": {
+  "init_x": 28.855,
+  "init_y": -3.453,
+  "init_z": -3.14,
+  "init_yaw": 9.0,
+  "anchor_file": "data/ntu/anchors_eee.txt"
+ },
+ "eee_03": {
+  "init_x": 28.548,
+  "init_y": -1.961,
+  "init_z": -8.634,
+  "init_yaw": 255.0,
+  "anchor_file": "data/ntu/anchors_eee.txt"
+ },
+ "nya_01": {
+  "init_x": 6.468,
+  "init_y": -2.934,
+  "init_z": -4.624,
+  "init_yaw": 195.0,
+  "anchor_file": "data/ntu/anchors_nya_01.txt"
+ },
+ "nya_02": {
+  "init_x": 7.302,
+  "init_y": -2.005,
+  "init_z": 1.032,
+  "init_yaw": 78.0,
+  "anchor_file": "data/ntu/anchors_nya_02.txt"
+ },
+ "nya_03": {
+  "init_x": 6.805,
+  "init_y": -3.815,
+  "init_z": -0.956,
+  "init_yaw": 294.0,
+  "anchor_file": "data/ntu/anchors_nya_03.txt"
+ },
+ "sbs_01": {
+  "init_x": 19.312,
+  "init_y": -9.862,
+  "init_z": 1.022,
+  "init_yaw": 90.0,
+  "anchor_file": "data/ntu/anchors_sbs_01.txt"
+ },
+ "sbs_02": {
+  "init_x": 16.039,
+  "init_y": -12.987,
+  "init_z": 1.027,
+  "init_yaw": 116.0,
+  "anchor_file": "data/ntu/anchors_sbs_02.txt"
+ },
+ "sbs_03": {
+  "init_x": 13.874,
+  "init_y": -8.847,
+  "init_z": 1.229,
+  "init_yaw": 111.0,
+  "anchor_file": "data/ntu/anchors_sbs_03.txt"
+ }
+}

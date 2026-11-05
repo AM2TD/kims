@@ -11,8 +11,10 @@ The revised paper compares KIMS with two kinds of IMU + UWB baselines on every d
   - UTIL: the table uses the UTIL paper's ESKF (Table 4, per flight); the figures use our run of the devkit ESKF
     (below), which matches Table 4 on 45 of 79 flights and is lower on the const4 trial 3-7 flights.
 
-All baselines start from the same initial pose as KIMS, and all are scored with the same tables
-(`scripts/revision/final_table_v2.py`, `scripts/revision/final_rmse_final.py`).
+All baselines start from the same initial pose as KIMS. Their outputs go to `result/<dataset>/sfuise_<sequence>_pose.txt`
+(and `result/util/eskf_<flight>_pose.txt`) and are scored by `scripts/evaluate.py sfuise`, like the KIMS runs.
+The other two baselines of the paper, SW-PGO and the bootstrap particle filter, are part of this repository
+(`scripts/run.py swpgo|pf`).
 
 The paths below are environment variables with defaults:
 
@@ -40,22 +42,22 @@ The paths below are environment variables with defaults:
 3. **MILUV, NTU VIRAL and IULUI (ranges).** Write the bag and the two configurations (0.3 m and 1.5 m residual
    gate) of each sequence:
    ```bash
-   python3 scripts/revision/sfuise_make_bag.py miluv default_1_random3_0
+   python3 baselines/sfuise/sfuise_make_bag.py miluv default_1_random3_0
    ```
    The configuration is the published ISAS-Walk one: weights, IMU variances, 10 Hz knots, a 100-knot (10 s)
    window, 50 calibration windows and a 0.3 m gate. The script fills in the dataset's rates, tags and anchors.
    Then run a job list with one `<dataset> <sequence>` per line:
    ```bash
-   scripts/revision/sfuise_toa_batch.sh jobs.txt                 # published 0.3 m gate -> result/<ds>/diag/sfuise_<seq>_pose.txt
-   VARIANT=_g15 scripts/revision/sfuise_toa_batch.sh jobs.txt    # 1.5 m gate (sensitivity check only)
+   baselines/sfuise/sfuise_toa_batch.sh jobs.txt                 # published 0.3 m gate -> result/<ds>/sfuise_<seq>_pose.txt
+   VARIANT=_g15 baselines/sfuise/sfuise_toa_batch.sh jobs.txt    # 1.5 m gate (sensitivity check only)
    ```
    The runs go one at a time with 1x playback, so nothing else should run on the machine. A run that crashes
    at start-up is retried up to three times.
 4. **UTIL (TDOA).** The published UTIL configuration (`config_test_util.yaml`) is used for each flight:
    ```bash
-   python3 scripts/revision/util_filter_bag.py <flight>       # drops physically impossible TDOA values (same rule as for KIMS)
-   scripts/revision/util_sfuise.sh <flight> <ros port>
-   python3 scripts/revision/util_sfuise_body.py               # SFUISE reports the tag; move it to the body origin
+   python3 baselines/sfuise/util_filter_bag.py <flight>       # drops physically impossible TDOA values (same rule as for KIMS)
+   baselines/sfuise/util_sfuise.sh <flight> <ros port>      # -> result/util/sfuisetag_<flight>_pose.txt
+   python3 baselines/sfuise/util_sfuise_body.py               # SFUISE reports the tag; moved to the body origin -> sfuise_<flight>_pose.txt
    ```
 
 ## MILUV devkit EKF (with and without the height sensor)
@@ -84,11 +86,13 @@ The ESKF is the unmodified `eskf_class.py` of the UTIL devkit
 (<https://github.com/learnsyslab/util-uwb-dataset>), driven the same way as the devkit's `main.py`:
 
 ```bash
-python3 scripts/revision/util_eskf.py <flight>    # -> result/util/diag/eskf_<flight>_pose.txt
+python3 baselines/util_devkit/util_eskf.py <flight>    # -> result/util/eskf_<flight>_pose.txt
 ```
 
-## First-submission baselines
+## SFUISE + Tukey (Table III)
 
-`src/offline/{ekf_rts,particle_smoothing,sw_pgo,sw_pgo_iului}.cpp` are the EKF-RTS (with a fixed-lag option, `lag:=`),
-particle-smoother and sliding-window pose-graph baselines of the first submission. They still build, but the revised
-tables do not use them.
+[`sfuise/sfuise_tukey.patch`](sfuise/sfuise_tukey.patch), applied on top of `sfuise_kims.patch`, adds an optional
+Tukey loss on the range residuals in place of the residual gate. Add `robust_delta: <cut in m>` to the configuration
+(the KIMS cut times the range sigma of Table II: MILUV 5 x 0.081, NTU VIRAL 5 x 0.3, UTIL 5 x 0.224, IULUI 3 x 0.11 m) and
+set `if_reject_uwb: false`. Without `robust_delta` SFUISE
+behaves as before.

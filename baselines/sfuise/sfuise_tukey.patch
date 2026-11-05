@@ -1,0 +1,63 @@
+--- a/include/Linearizer.h
++++ b/include/Linearizer.h
+@@ -22,6 +22,9 @@
+     double w_bias_gyro;
+     double reject_uwb_thresh;
+     double reject_uwb_window_width;
++    double robust_delta = 0.0;   // KIMS comparison: Tukey biweight on the range residual (m), 0 = published behaviour
++    bool robust_active = true;   // KIMS comparison: the Tukey weight follows the same switch as the gate (off in the first half window)
++    int robust_type = 0;         // KIMS comparison: 0 Tukey biweight (zero weight beyond robust_delta), 1 Huber (weight delta/|r| beyond)
+ 
+     int control_point_fps;
+ 
+@@ -276,6 +279,14 @@
+             if (if_reject_uwb_in_optimization && abs(residual) > reject_uwb_thresh) {
+                 continue;
+             }
++            if (param->robust_delta > 0.0 && param->robust_active) {   // Tukey biweight as an IRLS weight: residual and Jacobians scaled by (1 - u^2), zero beyond the cut
++                const double u = residual / param->robust_delta;
++                double sw = 1.0;
++                if (param->robust_type == 1) { if (std::abs(u) > 1.0) sw = std::sqrt(1.0 / std::abs(u)); }   // Huber: sqrt of the IRLS weight delta/|r|
++                else { if (std::abs(u) >= 1.0) continue; sw = 1.0 - u * u; }
++                residual *= sw; J_tUW *= sw; J_qUW *= sw;
++                for (size_t i = 0; i < J.d_val_d_knot.size(); i++) J.d_val_d_knot[i] *= sw;
++            }
+             double e2 = residual * residual;
+             double range_std_inv = 1.0 / sqrt(num_toa);
+             size_t num_J = J.d_val_d_knot.size();
+@@ -345,6 +356,14 @@
+             if (if_reject_uwb_in_optimization && abs(residual) > reject_uwb_thresh) {
+               continue;
+             }
++            if (param->robust_delta > 0.0 && param->robust_active) {   // Tukey biweight as an IRLS weight (see the TOA block)
++                const double u = residual / param->robust_delta;
++                double sw = 1.0;
++                if (param->robust_type == 1) { if (std::abs(u) > 1.0) sw = std::sqrt(1.0 / std::abs(u)); }   // Huber: sqrt of the IRLS weight delta/|r|
++                else { if (std::abs(u) >= 1.0) continue; sw = 1.0 - u * u; }
++                residual *= sw; J_tUW *= sw; J_qUW *= sw;
++                for (size_t i = 0; i < num_Ji; i++) J.d_val_d_knot[i] *= sw;
++            }
+             double range_std_inv = 1.0 / sqrt(num_tdoa);
+             for (size_t i = 0; i < num_Ji; i++) {
+                 J.d_val_d_knot[i] *= range_std_inv;
+--- a/src/SplineFusion.cpp
++++ b/src/SplineFusion.cpp
+@@ -181,6 +181,9 @@
+         param.w_gyro = CommonUtils::readParam<double>(nh, "w_gyro");
+         param.w_bias_gyro = CommonUtils::readParam<double>(nh, "w_bias_gyro");
+         param.if_reject_uwb = CommonUtils::readParam<bool>(nh, "if_reject_uwb");
++        param.robust_delta = 0.0; nh.getParam("robust_delta", param.robust_delta);   // KIMS comparison: Tukey weight instead of the gate
++        param.robust_type = 0; nh.getParam("robust_type", param.robust_type);
++        ROS_INFO_STREAM("[kims-cmp] robust_delta " << param.robust_delta);
+         if (param.if_reject_uwb) {
+             param.reject_uwb_thresh = CommonUtils::readParam<double>(nh, "reject_uwb_thresh");
+             param.reject_uwb_window_width = CommonUtils::readParam<double>(nh, "reject_uwb_window_width");
+@@ -403,6 +406,8 @@
+         } else {
+             param.if_reject_uwb_in_optimization = false;
+         }
++        // KIMS comparison: the Tukey weight (robust_delta) is switched on exactly where the published gate would be
++        param.robust_active = !(solver_flag == INITIAL && spline_local.numKnots() < int (param.reject_uwb_window_width * window_size));
+         if ((int) window_count >= n_window_calib) {
+             param.if_opt_g = false;
+             param.if_opt_transform = false;

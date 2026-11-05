@@ -303,8 +303,6 @@ inline ImuData interpolateImu(const std::vector<ImuData>& data,
     return out;
 }
 
-// Most recent range per (tag, anchor) pair, flattened tag-major as
-// tag_idx * num_anchors + anc_idx.
 class LatestRanges {
 public:
     LatestRanges(const std::vector<int>& tag_ids,
