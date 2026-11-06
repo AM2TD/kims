@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="docs/assets/demo.gif" width="82%" alt="KIMS on a real flight"><br>
-  <sub>IULUI CoplanarCircleSpin, onboard camera. 200 of the 8,192 window rollouts of each solve, colored by weight.</sub>
+  <sub>IULUI CoplanarCircleSpin, onboard camera. 200 of the 2,048 window rollouts of each solve, colored by weight.</sub>
 </p>
 
 KIMS is a fixed-lag smoother for UWB ranges (two-way ranging or TDOA) and an IMU. It samples IMU input corrections,
