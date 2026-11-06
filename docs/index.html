@@ -155,7 +155,7 @@
     <button data-i="1" aria-label="CoplanarCircleSpin"></button>
     <button data-i="2" aria-label="NoncoplanarCircleSpin"></button>
   </div>
-  <p class="cap"><b class="cname">CoplanarSquareTurn</b> &middot; 200 of 8,192 window rollouts projected into the arena camera, colored by weight</p>
+  <p class="cap"><b class="cname">CoplanarSquareTurn</b> &middot; 200 of 2,048 window rollouts projected into the arena camera, colored by weight</p>
 
   <div class="vgrid">
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_miluv_random3.mp4" type="video/mp4"><source src="assets/kims_demo_miluv_random3.webm" type="video/webm"></video><p>MILUV <code>random3_0</code></p></div>
@@ -242,7 +242,7 @@
     <p>The same window objective solved by <b>Levenberg&ndash;Marquardt</b> is never better than KIMS by more than 1 cm,
        and worse on <b>15 of 104</b> flights. All 15 pass close to the anchor plane, where the posterior splits in
        two and a mode follows one branch. Inflating the carried covariance four times changes nothing. Restarting LM
-       from eight points frees it on CoplanarSquareTurn but not on CoplanarCircleSpin, where the mirrored branch holds
+       from eight points frees it on three of the four flights shown but not on CoplanarCircleSpin, where the mirrored branch holds
        the lower window objective from every start, while the weighted mean of KIMS follows the mass of the branches.</p>
   </div>
 </section>
