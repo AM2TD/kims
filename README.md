@@ -128,7 +128,7 @@ Any setting can be overridden:
 
 ```bash
 python3 scripts/run.py kims ntu sbs_02 seed:=7 --label seed7
-python3 scripts/run.py kims miluv default_1_random3_0 N:=8192 --label n8192
+python3 scripts/run.py kims miluv default_1_random3_0 N:=2048 --label n2048
 python3 scripts/run.py swpgo iului SquareTurn robust_delta:=0 --label swpgo_norob
 ```
 
