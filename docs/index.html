@@ -208,6 +208,7 @@
       <li>SFUISE runs with its authors' published configuration from the KIMS start pose.</li>
       <li>Filters: our runs of the code released with MILUV (EKF + laser height) and UTIL (ESKF).</li>
       <li>KIMS on MILUV, NTU VIRAL and IULUI: mean over ten seeds.</li>
+      <li>Per seed at N = 2048: a run exceeds 1 m on eee_03 in 10 of 10 seeds and on nya_02 in 8 of 10, where the other 2 leave the mirror branch, and never on the other 31 flights. Seed spread is below 2 mm except on nya_02, nya_03 and sbs_02.</li>
     </ul>
   </details>
 </section>
@@ -230,7 +231,7 @@
     <tr><td>SFUISE</td><td>10 s</td><td>0.704</td><td>2.537</td><td>0.125</td><td>0.235</td></tr>
     <tr><td>SFUISE</td><td>2&ndash;3 s</td><td class="bad">div.</td><td class="bad">div.</td><td class="bad">div.</td><td class="bad">div.</td></tr>
   </table></div>
-  <p class="note">Single runs, seed 1234, N = 8192. UTIL: two flights per anchor constellation. div.: every flight diverges.
+  <p class="note">Single runs, seed 1234, N = 2048. UTIL: two flights per anchor constellation. div.: every flight diverges.
      IMU alone drifts 0.1&ndash;0.5 m in 2 s and 3&ndash;16 m in 10 s. Other seeds change the RMSE by at most 2 mm, except on two NTU VIRAL flights.</p>
 </section>
 
@@ -239,8 +240,10 @@
   <div class="two">
     <div class="fig"><img src="assets/fig_lm_mirror.png" alt="Height of KIMS and the matched LM on the four flights where they differ"></div>
     <p>The same window objective solved by <b>Levenberg&ndash;Marquardt</b> is never better than KIMS by more than 1 cm,
-       and worse on <b>14 of 104</b> flights. All 14 pass close to the anchor plane, where the posterior splits in
-       two and a mode follows one branch.</p>
+       and worse on <b>15 of 104</b> flights. All 15 pass close to the anchor plane, where the posterior splits in
+       two and a mode follows one branch. Inflating the carried covariance four times changes nothing. Restarting LM
+       from eight points frees it on CoplanarSquareTurn but not on CoplanarCircleSpin, where the mirrored branch holds
+       the lower window objective from every start, while the weighted mean of KIMS follows the mass of the branches.</p>
   </div>
 </section>
 
@@ -248,8 +251,8 @@
   <h2>Speed</h2>
   <div class="two">
     <div class="fig"><img src="assets/fig_nsweep_jetson.png" alt="Jetson Orin NX solve time and RMSE against the number of samples"></div>
-    <p><b>Desktop</b> RTX 5070 Ti: 4&ndash;9 ms mean per UWB epoch at N = 8192.<br>
-       <b>Onboard</b> Jetson Orin NX: 6&ndash;10 ms median at N = 1280&ndash;2560, inside the 10 ms epoch of IULUI, with the RMSE of N = 8192.</p>
+    <p><b>Desktop</b> RTX 5070 Ti at N = 2048: 2.2 ms mean per UWB epoch on NTU VIRAL, 3.6 on IULUI, 13 on UTIL and 19 on MILUV, where the smaller N triggers more tempering passes.<br>
+       <b>Onboard</b> Jetson Orin NX: 8.0 ms median at N = 2048, the paper setting, inside the 10 ms epoch of IULUI.</p>
   </div>
 </section>
 
