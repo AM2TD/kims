@@ -120,13 +120,6 @@
     <a class="btn" href="#demo"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Video</a>
     <a class="btn" href="#results"><svg viewBox="0 0 24 24"><path d="M4 20V10h3v10H4zm6.5 0V4h3v16h-3zM17 20v-7h3v7h-3z"/></svg>Results</a>
   </div>
-  <div class="teaser"><img src="assets/teaser.jpg" alt="KIMS on an IULUI flight: the drone, the anchors and the sampled window trajectories"></div>
-  <div class="stats">
-    <div class="stat"><b>104</b><span>real flights, 4 datasets</span></div>
-    <div class="stat"><b>0</b><span>diverged runs</span></div>
-    <div class="stat"><b>33</b><span>sampled dimensions per window</span></div>
-    <div class="stat"><b>4&ndash;9&nbsp;ms</b><span>mean solve time per UWB epoch</span></div>
-  </div>
 </header>
 
 <section id="demo" class="wrap">
@@ -176,6 +169,29 @@
     <div class="point"><b>Roll out</b>every sample is an IMU trajectory, so every hypothesis is kinematically feasible</div>
     <div class="point"><b>Weight and carry</b>UWB likelihood weights, tempered when they collapse, and the window moves on by its moments</div>
   </div>
+</section>
+
+<section class="wrap">
+  <h2>Tempering <small>one KIMS solve, as pseudo-code</small></h2>
+<pre>draw N samples from q = 0.9 N(mu, Sigma) + 0.1 p0      (first window: p0 only)
+roll out, weights w = exp(-S) p0 / q, ESS = 1 / sum w^2
+if ESS &lt; N_min:                                       N_min = 0.02 N
+    beta = largest value with ESS(beta) &gt;= 4 dim(theta)   bisection, 4 dim(theta) = 132
+    for stage in 1 .. 20:
+        refit N(mu, Sigma) to the weights at beta, shrink toward the drawing covariance
+        redraw N samples, roll out
+        beta = largest value with ESS(beta) &gt;= max(ESS(beta)/2, 132), or 1 if ESS(1) allows
+        if beta == 1 and ESS(1) &gt;= N_done: break        N_done = 0.05 N
+estimate = weighted mean at beta = 1, whatever the last stage reached
+carry N(mu, Sigma) to the next window only if ESS(1) &gt;= 132, else the next window draws from p0</pre>
+  <table>
+    <tr><th>Paper runs, N = 2048</th><th>MILUV</th><th>NTU VIRAL</th><th>UTIL</th><th>IULUI</th></tr>
+    <tr><td>solves that temper</td><td>57 %</td><td>0.1 %</td><td>55 %</td><td>1.5 %</td></tr>
+    <tr><td>mean passes per solve</td><td>9.2</td><td>1.0</td><td>7.2</td><td>1.2</td></tr>
+    <tr><td>stage limit reached</td><td>2.5 %</td><td>0.02 %</td><td>5.0 %</td><td>0.4 %</td></tr>
+    <tr><td>Gaussian component dropped</td><td>43 %</td><td>0.3 %</td><td>46 %</td><td>1.3 %</td></tr>
+  </table>
+  <p class="cap">from the <code>_bias.txt</code> logs of <code>scripts/run.py kims</code>, 853,559 solves over the 104 flights</p>
 </section>
 
 <section id="results" class="wrap">

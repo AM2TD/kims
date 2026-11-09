@@ -87,7 +87,8 @@ def baseline_args(method, dataset, seq, label):
         open(af, "w").write("# x y z (from the meta json)\n" + "".join("%f %f %f\n" % tuple(p) for p in m["anchors"]))
         a["anchor_file"] = af
     if method == "swpgo":
-        a.update(window_size=T, std_uwb=sig, robust_tukey=1, robust_delta=cut, out_index=1, sparse=1, ortho_w=1000, threads=1,
+        a.update(window_size=T, std_uwb=sig, robust_tukey=1, robust_delta=cut, out_index=1, sparse=1, threads=1,
+                 carry_cov=1, prior_pos=0.2, prior_vel=0.05, prior_rot=0.01, max_dt=5,
                  ftol=1e-12, gtol=1e-16, ptol=1e-12, max_iter=60)
     else:
         a.update(num_particles=8192, smooth_lag=T, sigma_uwb=sig, tukey_delta=cut, ess_thresh=0.5, seed=1234, bw_acc=bwa, bw_gyr=bwg)

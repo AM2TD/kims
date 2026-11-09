@@ -1,6 +1,7 @@
 #include "csv_io.h"
 #include "node_util.h"
 #include <ceres/ceres.h>
+#include <ceres/rotation.h>
 #include <Eigen/Dense>
 #include <fstream>
 #include <iostream>
@@ -15,9 +16,31 @@ static bool   g_robust_tukey = false;
 static double g_sigma_uwb = 1.0;
 static bool   g_fresh_only = false;
 static bool   g_mask_missing = false;
-static double g_w_pos = 1.0, g_w_vel = 1.0, g_w_rot = 5.0, g_w_ortho = 1.0;
+static double g_w_pos = 1.0, g_w_vel = 1.0, g_w_rot = 5.0;
 static double g_q_acc = 0.0, g_q_gyr = 0.0;
 static bool   g_use_bias = false;
+struct SO3Plus {
+    template <typename T> bool operator()(const T* x, const T* d, T* y) const { return Plus(x, d, y); }
+    template <typename T> bool Plus(const T* x, const T* d, T* y) const {
+        T dR[9]; ceres::AngleAxisToRotationMatrix(d, ceres::RowMajorAdapter3x3(dR));
+        for (int i = 0; i < 3; ++i) for (int j = 0; j < 3; ++j) {
+            y[3 * i + j] = T(0); for (int k = 0; k < 3; ++k) y[3 * i + j] += x[3 * i + k] * dR[3 * k + j]; }
+        return true; }
+    template <typename T> bool Minus(const T* y, const T* x, T* d) const {
+        T M[9];
+        for (int i = 0; i < 3; ++i) for (int j = 0; j < 3; ++j) {
+            M[3 * i + j] = T(0); for (int k = 0; k < 3; ++k) M[3 * i + j] += x[3 * k + i] * y[3 * k + j]; }
+        ceres::RotationMatrixToAngleAxis(ceres::RowMajorAdapter3x3(static_cast<const T*>(M)), d);
+        return true; }
+};
+template <typename T> static void so3Log(const T* Ra, const T* Rb, T* d) { SO3Plus().Minus(Rb, Ra, d); }
+static void setSO3(ceres::Problem& problem, double* rot) {
+#if CERES_VERSION_MAJOR > 2 || (CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1)
+    problem.AddParameterBlock(rot, 9, new ceres::AutoDiffManifold<SO3Plus, 9, 3>);
+#else
+    problem.AddParameterBlock(rot, 9, new ceres::AutoDiffLocalParameterization<SO3Plus, 9, 3>);
+#endif
+}
 template <int NT, int NA>
 struct UWBRangingCost {
     static constexpr int NR = NT * NA;
@@ -117,14 +140,15 @@ struct IMUDynamicsCost {
             dR = Eigen::Matrix<T, 3, 3>::Identity() + s * K + (T(1) - c) * K * K;
         }
         Eigen::Matrix<T, 3, 3> pred_Rj = R_i * dR;
-        for (int i = 0; i < 3; ++i)
-            for (int j = 0; j < 3; ++j)
-                residuals[6 + i*3 + j] = T(rot_w_) * (rot_j[i*3+j] - pred_Rj(i, j));
+        T P[9];
+        for (int i = 0; i < 3; ++i) for (int j = 0; j < 3; ++j) P[3 * i + j] = pred_Rj(i, j);
+        T e[3]; so3Log(P, rot_j, e);
+        for (int i = 0; i < 3; ++i) residuals[6 + i] = T(rot_w_) * e[i];
         return true;
     }
     static ceres::CostFunction* Create(const Eigen::Vector3d& acc,
                                         const Eigen::Vector3d& gyr, double dt) {
-        return new ceres::AutoDiffCostFunction<IMUDynamicsCost, 15, 3, 3, 9, 3, 3, 9, 6>(
+        return new ceres::AutoDiffCostFunction<IMUDynamicsCost, 9, 3, 3, 9, 3, 3, 9, 6>(
             new IMUDynamicsCost(acc, gyr, dt));
     }
 private:
@@ -138,23 +162,6 @@ struct BiasPriorCost {
     }
     static ceres::CostFunction* Create(double sa, double sg) { return new ceres::AutoDiffCostFunction<BiasPriorCost, 6, 6>(new BiasPriorCost(sa, sg)); }
     double sa_, sg_;
-};
-struct RotationOrthogonalityCost {
-    template <typename T>
-    bool operator()(const T* const rotation, T* residuals) const {
-        Eigen::Matrix<T, 3, 3> R;
-        R << rotation[0], rotation[1], rotation[2],
-             rotation[3], rotation[4], rotation[5],
-             rotation[6], rotation[7], rotation[8];
-        Eigen::Matrix<T, 3, 3> I = R.transpose() * R;
-        residuals[0] = T(g_w_ortho) * (I(0,0) - T(1)); residuals[1] = T(g_w_ortho) * (I(1,1) - T(1)); residuals[2] = T(g_w_ortho) * (I(2,2) - T(1));
-        residuals[3] = T(g_w_ortho) * I(0,1);           residuals[4] = T(g_w_ortho) * I(0,2);           residuals[5] = T(g_w_ortho) * I(1,2);
-        return true;
-    }
-    static ceres::CostFunction* Create() {
-        return new ceres::AutoDiffCostFunction<RotationOrthogonalityCost, 6, 9>(
-            new RotationOrthogonalityCost());
-    }
 };
 struct FloorCost {
     explicit FloorCost(double w) : w_(w) {}
@@ -170,27 +177,31 @@ struct NodePriorCost {
         for (int i = 0; i < 3; ++i) { p_[i] = p[i]; v_[i] = v[i]; } for (int i = 0; i < 9; ++i) r_[i] = r[i]; }
     template <typename T> bool operator()(const T* const p, const T* const v, const T* const r, T* res) const {
         for (int i = 0; i < 3; ++i) { res[i] = (p[i] - T(p_[i])) / T(sp_); res[3 + i] = (v[i] - T(v_[i])) / T(sv_); }
-        for (int i = 0; i < 9; ++i) res[6 + i] = (r[i] - T(r_[i])) / T(sr_);
+        T rr[9]; for (int i = 0; i < 9; ++i) rr[i] = T(r_[i]);
+        T e[3]; so3Log(rr, r, e); for (int i = 0; i < 3; ++i) res[6 + i] = e[i] / T(sr_);
         return true; }
     static ceres::CostFunction* Create(const double* p, const double* v, const double* r, double sp, double sv, double sr) {
-        return new ceres::AutoDiffCostFunction<NodePriorCost, 15, 3, 3, 9>(new NodePriorCost(p, v, r, sp, sv, sr)); }
+        return new ceres::AutoDiffCostFunction<NodePriorCost, 9, 3, 3, 9>(new NodePriorCost(p, v, r, sp, sv, sr)); }
     double p_[3], v_[3], r_[9], sp_, sv_, sr_;
 };
 static double g_prior_pos = 0.0, g_prior_vel = 0.0, g_prior_rot = 0.0;
 struct CarriedPriorCost {
-    CarriedPriorCost(const Eigen::Matrix<double, 15, 1>& mean, const Eigen::Matrix<double, 15, 15>& Lt) : mean_(mean), Lt_(Lt) {}
+    CarriedPriorCost(const Eigen::Matrix<double, 6, 1>& pv, const double* r, const Eigen::Matrix<double, 9, 9>& Lt) : pv_(pv), Lt_(Lt) {
+        for (int i = 0; i < 9; ++i) r_[i] = r[i]; }
     template <typename T> bool operator()(const T* const p, const T* const v, const T* const r, T* res) const {
-        Eigen::Matrix<T, 15, 1> d;
-        for (int i = 0; i < 3; ++i) { d[i] = p[i] - T(mean_[i]); d[3 + i] = v[i] - T(mean_[3 + i]); }
-        for (int i = 0; i < 9; ++i) d[6 + i] = r[i] - T(mean_[6 + i]);
-        Eigen::Matrix<T, 15, 1> out = Lt_.template cast<T>() * d;
-        for (int i = 0; i < 15; ++i) res[i] = out[i];
+        Eigen::Matrix<T, 9, 1> d;
+        for (int i = 0; i < 3; ++i) { d[i] = p[i] - T(pv_[i]); d[3 + i] = v[i] - T(pv_[3 + i]); }
+        T rr[9]; for (int i = 0; i < 9; ++i) rr[i] = T(r_[i]);
+        T e[3]; so3Log(rr, r, e); for (int i = 0; i < 3; ++i) d[6 + i] = e[i];
+        Eigen::Matrix<T, 9, 1> out = Lt_.template cast<T>() * d;
+        for (int i = 0; i < 9; ++i) res[i] = out[i];
         return true; }
-    static ceres::CostFunction* Create(const Eigen::Matrix<double, 15, 1>& mean, const Eigen::Matrix<double, 15, 15>& Lt) {
-        return new ceres::AutoDiffCostFunction<CarriedPriorCost, 15, 3, 3, 9>(new CarriedPriorCost(mean, Lt)); }
-    Eigen::Matrix<double, 15, 1> mean_; Eigen::Matrix<double, 15, 15> Lt_;
+    static ceres::CostFunction* Create(const Eigen::Matrix<double, 6, 1>& pv, const double* r, const Eigen::Matrix<double, 9, 9>& Lt) {
+        return new ceres::AutoDiffCostFunction<CarriedPriorCost, 9, 3, 3, 9>(new CarriedPriorCost(pv, r, Lt)); }
+    Eigen::Matrix<double, 6, 1> pv_; double r_[9]; Eigen::Matrix<double, 9, 9> Lt_;
 };
 static bool g_carry_cov = false;
+static double g_max_dt = 1.0;
 static double g_ftol = 1e-6, g_gtol = 1e-10, g_ptol = 1e-8;
 static long g_iters = 0; static int g_term[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 struct WindowNode {
@@ -231,7 +242,7 @@ static int runSwPgo(const std::vector<ImuData>& imu_data,
     int solve_count = 0;
     std::vector<double> solve_times_vec;
     double bias[6] = {0, 0, 0, 0, 0, 0};
-    bool have_carry = false; Eigen::Matrix<double, 15, 1> carry_mean; Eigen::Matrix<double, 15, 15> carry_Lt;
+    bool have_carry = false; Eigen::Matrix<double, 6, 1> carry_pv; double carry_r[9]; Eigen::Matrix<double, 9, 9> carry_Lt;
     double last_out_ts = -1.0;
     bool first_solve = true;
     auto writeNode = [&](const WindowNode& out) {
@@ -313,11 +324,11 @@ static int runSwPgo(const std::vector<ImuData>& imu_data,
             } else if (nd.has_uwb) {
                 problem.AddResidualBlock(UWBRangingCost<NT, NA>::Create(nd.ranges, anchors, tag_off), makeLoss(), nd.pos, nd.rot);
             }
-            problem.AddResidualBlock(RotationOrthogonalityCost::Create(), nullptr, nd.rot);
+            setSO3(problem, nd.rot);
             if (g_floor_w > 0.0) problem.AddResidualBlock(FloorCost::Create(g_floor_w), nullptr, nd.pos);
             if (w + 1 < (int)window.size()) {
                 double dt = window[w+1].timestamp - nd.timestamp;
-                if (dt > 0.0 && dt < 1.0) {
+                if (dt > 0.0 && dt < g_max_dt) {
                     problem.AddResidualBlock(
                         IMUDynamicsCost::Create(nd.imu.acc, nd.imu.gyr, dt),
                         nullptr,
@@ -328,9 +339,8 @@ static int runSwPgo(const std::vector<ImuData>& imu_data,
             if (w == 0) {
                 problem.AddParameterBlock(nd.pos, 3);
                 problem.AddParameterBlock(nd.vel, 3);
-                problem.AddParameterBlock(nd.rot, 9);
                 if (g_carry_cov && have_carry) {
-                    problem.AddResidualBlock(CarriedPriorCost::Create(carry_mean, carry_Lt), nullptr, nd.pos, nd.vel, nd.rot);
+                    problem.AddResidualBlock(CarriedPriorCost::Create(carry_pv, carry_r, carry_Lt), nullptr, nd.pos, nd.vel, nd.rot);
                 } else if (g_prior_pos > 0.0) {
                     problem.AddResidualBlock(NodePriorCost::Create(nd.pos, nd.vel, nd.rot, g_prior_pos, g_prior_vel, g_prior_rot), nullptr, nd.pos, nd.vel, nd.rot);
                 } else {
@@ -355,28 +365,26 @@ static int runSwPgo(const std::vector<ImuData>& imu_data,
             ceres::Covariance::Options co; co.algorithm_type = ceres::SPARSE_QR; co.null_space_rank = -1;
             ceres::Covariance cov(co);
             WindowNode& n1 = window[1];
-            const double* b[3] = {n1.pos, n1.vel, n1.rot}; const int sz[3] = {3, 3, 9}, ofs3[3] = {0, 3, 6};
+            const double* b[3] = {n1.pos, n1.vel, n1.rot}; const int ofs3[3] = {0, 3, 6};
             std::vector<std::pair<const double*, const double*>> blocks;
             for (int i = 0; i < 3; ++i) for (int j = i; j < 3; ++j) blocks.push_back({b[i], b[j]});
             have_carry = false;
             if (cov.Compute(blocks, &problem)) {
-                Eigen::Matrix<double, 15, 15> S = Eigen::Matrix<double, 15, 15>::Zero();
+                Eigen::Matrix<double, 9, 9> S = Eigen::Matrix<double, 9, 9>::Zero();
                 for (int i = 0; i < 3; ++i) for (int j = i; j < 3; ++j) {
-                    Eigen::MatrixXd blk(sz[i], sz[j]); cov.GetCovarianceBlock(b[i], b[j], blk.data());
-                    Eigen::MatrixXd blkT = Eigen::Map<Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(blk.data(), sz[i], sz[j]);
-                    S.block(ofs3[i], ofs3[j], sz[i], sz[j]) = blkT; S.block(ofs3[j], ofs3[i], sz[j], sz[i]) = blkT.transpose();
+                    Eigen::Matrix<double, 3, 3, Eigen::RowMajor> blk; cov.GetCovarianceBlockInTangentSpace(b[i], b[j], blk.data());
+                    S.block<3, 3>(ofs3[i], ofs3[j]) = blk; S.block<3, 3>(ofs3[j], ofs3[i]) = blk.transpose();
                 }
                 const double dt1 = window[2].timestamp - n1.timestamp;
                 const double qa = g_q_acc > 0.0 ? g_q_acc : 0.1, qg = g_q_gyr > 0.0 ? g_q_gyr : 0.01;
-                for (int i = 0; i < 3; ++i) { S(i, i) += std::pow(qa * dt1 * std::sqrt(dt1), 2) / 3.0 + 1e-10; S(3 + i, 3 + i) += qa * qa * dt1 + 1e-10; }
-                for (int i = 0; i < 9; ++i) S(6 + i, 6 + i) += qg * qg * dt1 + 1e-10;
-                Eigen::LDLT<Eigen::Matrix<double, 15, 15>> ldlt(S);
+                for (int i = 0; i < 3; ++i) { S(i, i) += std::pow(qa * dt1 * std::sqrt(dt1), 2) / 3.0 + 1e-10; S(3 + i, 3 + i) += qa * qa * dt1 + 1e-10; S(6 + i, 6 + i) += qg * qg * dt1 + 1e-10; }
+                Eigen::LDLT<Eigen::Matrix<double, 9, 9>> ldlt(S);
                 if (ldlt.info() == Eigen::Success && ldlt.isPositive()) {
-                    const Eigen::Matrix<double, 15, 15> info = ldlt.solve(Eigen::Matrix<double, 15, 15>::Identity());
-                    Eigen::LLT<Eigen::Matrix<double, 15, 15>> llt(0.5 * (info + info.transpose()));
+                    const Eigen::Matrix<double, 9, 9> info = ldlt.solve(Eigen::Matrix<double, 9, 9>::Identity());
+                    Eigen::LLT<Eigen::Matrix<double, 9, 9>> llt(0.5 * (info + info.transpose()));
                     if (llt.info() == Eigen::Success) {
                         carry_Lt = llt.matrixL().transpose();
-                        for (int i = 0; i < 3; ++i) { carry_mean[i] = n1.pos[i]; carry_mean[3 + i] = n1.vel[i]; } for (int i = 0; i < 9; ++i) carry_mean[6 + i] = n1.rot[i];
+                        for (int i = 0; i < 3; ++i) { carry_pv[i] = n1.pos[i]; carry_pv[3 + i] = n1.vel[i]; } for (int i = 0; i < 9; ++i) carry_r[i] = n1.rot[i];
                         have_carry = true;
                     }
                 }
@@ -450,7 +458,6 @@ int main(int argc, char** argv) {
     g_mask_missing  = g_fresh_only || group_same_ts;
     g_q_acc         = getArg<double>(args, "q_acc", 0.0);
     g_q_gyr         = getArg<double>(args, "q_gyr", 0.0);
-    g_w_ortho       = getArg<double>(args, "ortho_w", 1.0);
     const double dc_acc = getArg<double>(args, "dc_acc", 0.0), dc_gyr = getArg<double>(args, "dc_gyr", 0.0);
     g_use_bias      = dc_acc > 0.0 && dc_gyr > 0.0;
     const int    out_index = getArg<int>(args, "out_index", -2);
@@ -459,6 +466,7 @@ int main(int argc, char** argv) {
     const int    threads   = getArg<int>(args, "threads", 1);
     g_prior_pos = getArg<double>(args, "prior_pos", 0.0); g_prior_vel = getArg<double>(args, "prior_vel", 0.05); g_prior_rot = getArg<double>(args, "prior_rot", 0.01);
     g_carry_cov = getArg<int>(args, "carry_cov", 0) != 0;
+    g_max_dt = getArg<double>(args, "max_dt", 1.0);
     g_ftol = getArg<double>(args, "ftol", 1e-6); g_gtol = getArg<double>(args, "gtol", 1e-10); g_ptol = getArg<double>(args, "ptol", 1e-8);
     g_floor_w       = std::sqrt(getArg<double>(args, "floor_penalty", 0.0));
     double init_x   = getArg<double>(args, "init_x", 0.0);
