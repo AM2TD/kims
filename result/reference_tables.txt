@@ -1,4 +1,4 @@
-Reference output of scripts/evaluate.py on the runs behind the paper (2026-11-05):
+Reference output of scripts/evaluate.py on the runs behind the paper (2026-11-09):
   kims          scripts/run.py kims, seed 1234, N 2048 (Table I reports the mean over ten seeds on MILUV, NTU VIRAL and IULUI,
                 so NTU sbs_02 and nya_03, where the seeds disagree, differ from it)
   swpgo, pf     Table III. swpgo_norob = scripts/run.py swpgo ... robust_delta:=0, pf_q10 = scripts/run.py pf ... with 10x q_acc and q_gyr
@@ -7,55 +7,55 @@ Reference output of scripts/evaluate.py on the runs behind the paper (2026-11-05
 Position RMSE [m] (orientation RMSE [deg]) per sequence; 'div.' = above 100 m, '-' = no output. Labels: kims, swpgo, swpgo_norob, pf, pf_q10
 
 MILUV                                                    kims            swpgo      swpgo_norob               pf           pf_q10   EKF+height (paper)
-  default_1_remoteControlHighPace_1               0.205 (7.0)      0.712 (6.0)     1.205 (10.0)      div. (div.)     0.745 (10.3)                1.328
-  default_1_random3_1                             0.232 (7.0)      0.514 (6.6)     0.633 (11.7)      div. (div.)      div. (div.)                0.255
-  default_1_random3_0                             0.166 (8.3)      0.619 (8.2)      0.400 (7.4)      div. (div.)     0.637 (10.3)                0.217
-  default_1_circular3D_0                          0.093 (8.7)      0.107 (7.7)     0.625 (10.5)      div. (div.)      div. (div.)                0.303
-  default_1_remoteControlLowPace_0_v2             0.086 (6.7)      0.090 (6.3)      0.437 (6.0)      div. (div.)      0.125 (8.8)                0.219
-  default_1_remoteControlLowPace_0                0.201 (6.9)      0.194 (7.2)      0.614 (8.6)      div. (div.)      div. (div.)                0.247
-  default_1_circular2D_0                          0.133 (6.0)      div. (div.)      1.097 (7.3)      div. (div.)      div. (div.)                0.335
-  default_1_remoteControlHighPace_0               0.100 (4.3)      0.087 (4.1)      0.538 (6.1)      div. (div.)      0.142 (8.8)                1.359
-  obstacles_1_random3_0b                          0.131 (5.5)      0.172 (6.8)      0.444 (8.8)      div. (div.)      0.555 (9.9)                0.252
-  default_1_random3_2                             0.135 (7.3)      0.186 (9.3)      0.524 (9.4)      div. (div.)      div. (div.)                0.258
-  default_1_remoteControlHighPace_2              0.245 (19.2)      div. (div.)     0.964 (17.6)      div. (div.)      div. (div.)                1.409
-  noAprilTags_1_random3_2b                        0.130 (6.2)      0.138 (5.9)      0.781 (6.8)      div. (div.)      0.202 (9.9)                0.241
-  noAprilTags_1_remoteControlHighPace_2b          0.191 (6.9)      0.180 (6.2)      0.729 (7.4)      div. (div.)      div. (div.)                0.273
-  median (diverged/failed)                        0.135 (0/0)      0.186 (2/2)      0.625 (0/2)     div. (13/13)       div. (7/7)          0.258 (0/3)
-  KIMS lower than                                                        10/13            13/13            13/13            13/13                13/13
+  default_1_remoteControlHighPace_1               0.205 (7.0)      0.712 (7.3)     1.202 (12.1)      div. (div.)     0.745 (10.3)                1.328
+  default_1_random3_1                             0.232 (7.0)      0.541 (7.6)     1.227 (13.7)      div. (div.)      div. (div.)                0.255
+  default_1_random3_0                             0.166 (8.3)      0.627 (9.2)      0.414 (9.2)      div. (div.)     0.637 (10.3)                0.217
+  default_1_circular3D_0                          0.093 (8.7)      0.144 (9.1)     0.670 (12.0)      div. (div.)      div. (div.)                0.303
+  default_1_remoteControlLowPace_0_v2             0.086 (6.7)      0.099 (7.4)      0.445 (8.5)      div. (div.)      0.125 (8.8)                0.219
+  default_1_remoteControlLowPace_0                0.201 (6.9)      0.328 (8.3)     0.876 (11.0)      div. (div.)      div. (div.)                0.247
+  default_1_circular2D_0                          0.133 (6.0)      0.275 (8.5)      1.114 (8.5)      div. (div.)      div. (div.)                0.335
+  default_1_remoteControlHighPace_0               0.100 (4.3)      0.100 (4.8)      0.877 (7.3)      div. (div.)      0.142 (8.8)                1.359
+  obstacles_1_random3_0b                          0.131 (5.5)      0.185 (6.5)      0.454 (8.7)      div. (div.)      0.555 (9.9)                0.252
+  default_1_random3_2                             0.135 (7.3)      0.209 (9.1)     0.558 (10.2)      div. (div.)      div. (div.)                0.258
+  default_1_remoteControlHighPace_2              0.245 (19.2)     0.227 (24.1)      1.009 (8.1)      div. (div.)      div. (div.)                1.409
+  noAprilTags_1_random3_2b                        0.130 (6.2)      0.175 (9.5)     0.824 (10.2)      div. (div.)      0.202 (9.9)                0.241
+  noAprilTags_1_remoteControlHighPace_2b          0.191 (6.9)     1.338 (10.6)      0.789 (8.9)      div. (div.)      div. (div.)                0.273
+  median (diverged/failed)                        0.135 (0/0)      0.227 (0/1)      0.824 (0/4)     div. (13/13)       div. (7/7)          0.258 (0/3)
+  KIMS lower than                                                        12/13            13/13            13/13            13/13                13/13
 
 NTU                                                      kims            swpgo      swpgo_norob               pf           pf_q10
-  eee_01                                                0.203            0.224            5.731             div.            0.333
-  eee_02                                                0.370            0.386            3.591             div.             div.
-  eee_03                                                1.845            1.886            3.904             div.            1.915
-  nya_01                                                0.793            0.792            2.754             div.             div.
-  nya_02                                                3.085            0.494            4.184             div.            0.505
-  nya_03                                                0.917            1.044            4.167             div.             div.
-  sbs_01                                                0.191            0.190            4.267             div.           25.931
-  sbs_02                                                0.411            2.696            4.841             div.            2.560
-  sbs_03                                                0.435            0.458            4.937             div.            0.831
-  median (diverged/failed)                        0.435 (0/2)      0.494 (0/3)      4.184 (0/9)       div. (9/9)      2.560 (3/6)
-  KIMS lower than                                                          6/9              9/9              9/9              8/9
+  eee_01                                                0.203            0.199            5.946             div.            0.333
+  eee_02                                                0.370            0.357            4.244             div.             div.
+  eee_03                                                1.845            1.867            4.059             div.            1.915
+  nya_01                                                0.793            0.786            2.823             div.             div.
+  nya_02                                                3.085            0.445            4.245             div.            0.505
+  nya_03                                                0.917            0.993            4.023             div.             div.
+  sbs_01                                                0.191            0.174            4.764             div.           25.931
+  sbs_02                                                0.411            0.891            4.639             div.            2.560
+  sbs_03                                                0.435            0.433            5.212             div.            0.831
+  median (diverged/failed)                        0.435 (0/2)      0.445 (0/1)      4.245 (0/9)       div. (9/9)      2.560 (3/6)
+  KIMS lower than                                                          3/9              9/9              9/9              8/9
 
 UTIL                                                     kims            swpgo      swpgo_norob               pf           pf_q10         ESKF (paper)
-  const. 1 (12 flights, median)                   0.104 (3.3)      0.095 (2.1)      0.096 (2.2)     0.096 (60.8)     0.099 (86.6)                0.123
-  const. 2 (12 flights, median)                   0.096 (2.3)      0.093 (1.8)      0.093 (1.8)     0.456 (79.9)     0.099 (60.7)                0.115
-  const. 3 (16 flights, median)                   0.192 (4.1)      0.184 (3.0)      0.172 (3.0)             div.     0.217 (41.9)                0.223
-  const. 4 (39 flights, median)                   0.258 (3.2)      0.174 (3.8)      0.167 (3.7)    37.578 (74.5)     0.181 (71.8)                0.473
+  const. 1 (12 flights, median)                   0.104 (3.3)      0.095 (8.6)      0.096 (8.3)     0.096 (60.8)     0.099 (86.6)                0.123
+  const. 2 (12 flights, median)                   0.096 (2.3)      0.091 (4.8)     0.092 (11.9)     0.456 (79.9)     0.099 (60.7)                0.115
+  const. 3 (16 flights, median)                   0.192 (4.1)     0.185 (27.3)     0.174 (41.8)             div.     0.217 (41.9)                0.223
+  const. 4 (39 flights, median)                   0.258 (3.2)     0.173 (10.1)     0.166 (14.1)    37.578 (74.5)     0.181 (71.8)                0.473
   median (diverged/failed)                        0.187 (0/0)      0.124 (0/0)      0.124 (0/0)      0.197 (1/2)      0.132 (0/0)          0.220 (0/0)
   KIMS lower than                                                          0/8              0/8              6/8              7/8                78/79
 
 IULUI                                                    kims            swpgo      swpgo_norob               pf           pf_q10
-  SquareTurn                                      0.120 (9.7)     0.544 (14.9)     0.574 (14.2)      div. (div.)     0.886 (15.8)
-  CircleSpin                                      0.117 (4.0)      0.404 (4.1)      0.413 (3.7)      div. (div.)      0.477 (7.1)
-  AC3_125000                                      0.128 (3.4)      0.111 (3.2)      0.499 (3.3)      div. (div.)      0.141 (6.5)
-  median (diverged/failed)                        0.120 (0/0)      0.404 (0/0)      0.499 (0/0)       div. (3/3)      0.477 (0/0)
-  KIMS lower than                                                          2/3              3/3              3/3              3/3
+  SquareTurn                                      0.120 (9.7)      0.912 (4.7)      0.943 (8.0)      div. (div.)     0.886 (15.8)
+  CircleSpin                                      0.117 (4.0)      0.406 (4.3)      0.414 (3.9)      div. (div.)      0.477 (7.1)
+  AC3_125000                                      0.128 (3.4)      0.133 (4.0)      0.510 (4.9)      div. (div.)      0.141 (6.5)
+  median (diverged/failed)                        0.120 (0/0)      0.406 (0/0)      0.510 (0/0)       div. (3/3)      0.477 (0/0)
+  KIMS lower than                                                          3/3              3/3              3/3              3/3
 
 Summary (Table III): median position RMSE [m] (diverged > 100 m / failed > 1 m) over the sequences with output
 (UTIL common: the flights on which every listed label has an output, e.g. the 8 flights of Table III)
                                 MILUV                    NTU                   UTIL                  IULUI        UTIL common (8)
   kims                    0.135 (0/0)            0.435 (0/2)            0.187 (0/0)            0.120 (0/0)            0.129 (0/0)
-  swpgo                   0.186 (2/2)            0.494 (0/3)         0.124 (0/0) n8            0.404 (0/0)            0.124 (0/0)
-  swpgo_norob             0.625 (0/2)            4.184 (0/9)         0.124 (0/0) n8            0.499 (0/0)            0.124 (0/0)
+  swpgo                   0.227 (0/1)            0.445 (0/1)         0.124 (0/0) n8            0.406 (0/0)            0.124 (0/0)
+  swpgo_norob             0.824 (0/4)            4.245 (0/9)         0.124 (0/0) n8            0.510 (0/0)            0.124 (0/0)
   pf                     div. (13/13)             div. (9/9)         0.197 (1/2) n8             div. (3/3)            0.197 (1/2)
   pf_q10                   div. (7/7)            2.560 (3/6)         0.132 (0/0) n8            0.477 (0/0)            0.132 (0/0)

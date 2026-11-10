@@ -126,17 +126,17 @@
   <h2>Video <small>real flights, real time, original sound</small></h2>
   <div class="carousel">
     <div class="slide" data-active>
-      <video controls playsinline preload="metadata" poster="assets/poster_coplanarsquareturn.jpg">
+      <video controls playsinline preload="metadata">
         <source src="assets/kims_demo_iului_onboard_coplanarsquareturn.mp4" type="video/mp4">
       </video>
     </div>
     <div class="slide">
-      <video controls playsinline preload="none" poster="assets/poster_coplanarcirclespin.jpg">
+      <video controls playsinline preload="metadata">
         <source src="assets/kims_demo_iului_onboard_coplanarcirclespin.mp4" type="video/mp4">
       </video>
     </div>
     <div class="slide">
-      <video controls playsinline preload="none" poster="assets/poster_noncoplanarcirclespin.jpg">
+      <video controls playsinline preload="metadata">
         <source src="assets/kims_demo_iului_onboard_noncoplanarcirclespin.mp4" type="video/mp4">
       </video>
     </div>
@@ -175,10 +175,10 @@
   <h2>Tempering <small>one KIMS solve, as pseudo-code</small></h2>
 <pre>draw N samples from q = 0.9 N(mu, Sigma) + 0.1 p0      (first window: p0 only)
 roll out, weights w = exp(-S) p0 / q, ESS = 1 / sum w^2
-if ESS &lt; N_min:                                       N_min = 0.02 N
+if ESS &lt; N_min:                                       N_min = 0.0244 N = 50
     beta = largest value with ESS(beta) &gt;= 4 dim(theta)   bisection, 4 dim(theta) = 132
     for stage in 1 .. 20:
-        refit N(mu, Sigma) to the weights at beta, shrink toward the drawing covariance
+        refit N(mu, Sigma) to the weights at beta, inflate by 1.2, shrink toward the drawing covariance
         redraw N samples, roll out
         beta = largest value with ESS(beta) &gt;= max(ESS(beta)/2, 132), or 1 if ESS(1) allows
         if beta == 1 and ESS(1) &gt;= N_done: break        N_done = 0.05 N
@@ -192,6 +192,20 @@ carry N(mu, Sigma) to the next window only if ESS(1) &gt;= 132, else the next wi
     <tr><td>Gaussian component dropped</td><td>43 %</td><td>0.3 %</td><td>46 %</td><td>1.3 %</td></tr>
   </table>
   <p class="cap">from the <code>_bias.txt</code> logs of <code>scripts/run.py kims</code>, 853,559 solves over the 104 flights</p>
+</section>
+
+<section class="wrap">
+  <h2>Window length <small>the values behind the lower bound</small></h2>
+<pre>T_w &gt;= ( 20 sigma_eff^2 / (nu kappa sigma_b^2) )^(1/5),      sigma_b = 0.1 m/s^2</pre>
+  <table>
+    <tr><th></th><th>MILUV</th><th>NTU VIRAL</th><th>UTIL</th><th>IULUI</th></tr>
+    <tr><td>&nu;, ranges per second</td><td>70</td><td>59</td><td>320</td><td>800</td></tr>
+    <tr><td>&sigma;<sub>eff</sub> [m]</td><td>0.081</td><td>0.055</td><td>0.224</td><td>0.11</td></tr>
+    <tr><td>&kappa;</td><td>0.0016</td><td>0.0077</td><td>0.18</td><td>0.0083</td></tr>
+    <tr><td>lower bound</td><td>2.6 s</td><td>1.7 s</td><td>1.1 s</td><td>1.3 s</td></tr>
+    <tr><td>window used</td><td>3 s</td><td>2 s</td><td>2 s</td><td>2 s</td></tr>
+  </table>
+  <p class="cap">&nu; is the mean range rate of the flights. &sigma;<sub>eff</sub> is the range standard deviation inside the cut of the loss, on MILUV the line-of-sight width of the mixture divided by the square root of its line-of-sight share, 0.069 / &radic;0.733, on NTU VIRAL the standard deviation the dataset reports with each range, on UTIL the TDOA deviation of the development kit and on IULUI the range deviation of the loss. &kappa; = (h/r)<sup>2</sup> at a typical height h above the anchor plane and anchor distance r, 0.16 m at 4.0 m on MILUV, 2.2 m at 25 m on NTU VIRAL and 0.4 m at 4.4 m on IULUI. UTIL has no common anchor plane, so &kappa; is the mean squared vertical direction cosine along the flights.</p>
 </section>
 
 <section id="results" class="wrap">

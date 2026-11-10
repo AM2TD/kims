@@ -5,7 +5,7 @@
 
 namespace kims {
 
-inline std::map<std::string, std::string> paperConfig(const std::string& dataset, const std::string& sequence = "") {
+inline std::map<std::string, std::string> paperConfig(const std::string& dataset, const std::string& = "") {
     std::map<std::string, std::string> c = {
         {"gamma", "1"}, {"w_uwb", "1"}, {"ctrl_mode", "0"}, {"floor_penalty", "0"}, {"K", "4"}, {"carry_bias", "0"},
         {"fresh_only", "1"}, {"dc_acc", "0.1"}, {"dc_gyr", "0.01"}, {"true_time", "1"}, {"head", "2"}, {"seq", "1"},
@@ -27,7 +27,7 @@ inline std::map<std::string, std::string> paperConfig(const std::string& dataset
              {"uwb_delta", "5"}, {"head_filt", "0"},
              {"sigma_acc_x", "37.1062"}, {"sigma_acc_y", "37.1062"}, {"sigma_acc_z", "37.4373"},
              {"sigma_gyr_x", "0.0863"}, {"sigma_gyr_y", "0.0863"}, {"sigma_gyr_z", "0.0863"},
-             {"w_acc", "0.0344"}, {"w_gyr", sequence == "eee_03" ? "0.3" : "0.01"},
+             {"w_acc", "0.0344"}, {"w_gyr", "0.01"},
              {"sigma_imu_acc", "0.3332"}, {"sigma_imu_gyr", "0.0642"}, {"ctrl_delta", "0.9985"}, {"imu_z_down", "1"}});
     } else {
         set({{"sigma_acc_x", "1.2"}, {"sigma_acc_y", "1.2"}, {"sigma_acc_z", "9.015"},
