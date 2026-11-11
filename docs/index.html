@@ -23,6 +23,7 @@
   h2{font-size:1.4rem;font-weight:750;margin-bottom:18px;letter-spacing:-.2px}
   h2 small{font-size:.85rem;font-weight:500;color:var(--dim);margin-left:8px}
   .cap{color:var(--dim);font-size:.88rem;text-align:center;margin-top:8px}
+  .cap.left{text-align:left}
 
   header{padding:64px 0 26px;text-align:center}
   header.hero{position:relative;overflow:hidden;min-height:78vh;display:flex;align-items:center;justify-content:center;
@@ -185,7 +186,6 @@
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_eee02.mp4" type="video/mp4"><source src="assets/kims_demo_eee02.webm" type="video/webm"></video><p>NTU VIRAL <code>eee_02</code></p></div>
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_iului_noncoplanarcirclespin.mp4" type="video/mp4"><source src="assets/kims_demo_iului_noncoplanarcirclespin.webm" type="video/webm"></video><p>IULUI <code>NoncoplanarCircleSpin</code></p></div>
   </div>
-  <p class="cap">Red: KIMS &middot; dashed: ground truth &middot; teal grid: anchor height</p>
 </section>
 
 <section class="wrap">
@@ -207,15 +207,15 @@
     \mathrm{ESS}(\beta) = \frac{1}{\sum_n w^{(n)}(\beta)^2}
   \]</div>
   <ol class="steps">
-    <li>Tempering starts when \(\mathrm{ESS}(1) < 0.02N\).</li>
+    <li>Tempering starts when \(\mathrm{ESS}(\beta{=}1) < 0.02N\).</li>
     <li>Bisection on the samples at hand, without new rollouts, sets the first \(\beta\) to the largest value with \(\mathrm{ESS}(\beta) \ge N_{\mathrm{fit}} = 4\dim\boldsymbol{\theta} = 132\).</li>
     <li>The Gaussian component is refitted to the weights \(w(\beta)\) as \(\tilde{\boldsymbol{\mu}}, \tilde{\boldsymbol{\Sigma}}\) and blended with the covariance it was drawn from,
       \[ \boldsymbol{\Sigma} \leftarrow \rho\cdot 1.2\,\tilde{\boldsymbol{\Sigma}} + (1-\rho)\,\boldsymbol{\Sigma},\qquad \rho = \frac{\mathrm{ESS}}{\mathrm{ESS} + \dim\boldsymbol{\theta}}, \]
       then \(N\) new samples are drawn and rolled out.</li>
     <li>With the target \(N_\star = \max\bigl(\mathrm{ESS}(\beta)/2,\ N_{\mathrm{fit}}\bigr)\) on the new samples,
-      \[ \beta \leftarrow \begin{cases} 1, & \mathrm{ESS}(1) \ge N_\star \\ \max\{\beta' \ge \beta : \mathrm{ESS}(\beta') \ge N_\star\}, & \text{otherwise.} \end{cases} \]</li>
-    <li>Steps 3 and 4 repeat until \(\beta = 1\) and \(\mathrm{ESS}(1) \ge N_{\mathrm{done}} = 0.05N\), or for at most 20 stages.</li>
-    <li>The estimate is the mean under the untempered weights \(w(1)\). \(\mathcal{N}(\boldsymbol{\mu},\boldsymbol{\Sigma})\) is carried to the next window only if \(\mathrm{ESS}(1) \ge N_{\mathrm{fit}}\), otherwise the next window draws from \(p_0\).</li>
+      \[ \beta \leftarrow \begin{cases} 1, & \mathrm{ESS}(\beta{=}1) \ge N_\star \\ \max\{\beta' \ge \beta : \mathrm{ESS}(\beta') \ge N_\star\}, & \text{otherwise.} \end{cases} \]</li>
+    <li>Steps 3 and 4 repeat until \(\beta = 1\) and \(\mathrm{ESS}(\beta{=}1) \ge N_{\mathrm{done}} = 0.05N\), or for at most 20 stages.</li>
+    <li>The estimate is the mean under the untempered weights \(w(1)\). \(\mathcal{N}(\boldsymbol{\mu},\boldsymbol{\Sigma})\) is carried to the next window only if \(\mathrm{ESS}(\beta{=}1) \ge N_{\mathrm{fit}}\), otherwise the next window draws from \(p_0\).</li>
   </ol>
   <table>
     <tr><th>Paper runs, \(N = 2048\)</th><th>MILUV</th><th>NTU VIRAL</th><th>UTIL</th><th>IULUI</th></tr>
@@ -224,7 +224,6 @@
     <tr><td>stage limit reached</td><td>2.5 %</td><td>0.02 %</td><td>5.0 %</td><td>0.4 %</td></tr>
     <tr><td>Gaussian component dropped</td><td>43 %</td><td>0.3 %</td><td>46 %</td><td>1.3 %</td></tr>
   </table>
-  <p class="cap">from the <code>_bias.txt</code> logs of <code>scripts/run.py kims</code>, 853,559 solves over the 104 flights</p>
 </section>
 
 <section class="wrap">
@@ -244,7 +243,7 @@
     <tr><td>lower bound</td><td>2.6 s</td><td>1.7 s</td><td>1.1 s</td><td>1.3 s</td></tr>
     <tr><td>window used</td><td>3 s</td><td>2 s</td><td>2 s</td><td>2 s</td></tr>
   </table>
-  <p class="cap">\(\nu\) is the mean range rate of the flights. \(\sigma_{\mathrm{eff}}\) is the range standard deviation inside the cut of the loss, on MILUV the line-of-sight width of the mixture divided by the square root of its line-of-sight share, \(0.069/\sqrt{0.733}\), on NTU VIRAL the standard deviation the dataset reports with each range, on UTIL the TDoA deviation of the development kit and on IULUI the range deviation of the loss. \(\kappa = (h/r)^2\) at a typical height \(h\) above the anchor plane and anchor distance \(r\), 0.16 m at 4.0 m on MILUV, 2.2 m at 25 m on NTU VIRAL and 0.4 m at 4.4 m on IULUI. UTIL has no common anchor plane, so \(\kappa\) is the mean squared vertical direction cosine along the flights.</p>
+  <p class="cap left">\(\nu\) is the mean range rate of the flights. \(\sigma_{\mathrm{eff}}\) is the range standard deviation inside the cut of the loss, on MILUV the line-of-sight width of the mixture divided by the square root of its line-of-sight share, \(0.069/\sqrt{0.733}\), on NTU VIRAL the standard deviation the dataset reports with each range, on UTIL the TDoA deviation of the development kit and on IULUI the range deviation of the loss. \(\kappa = (h/r)^2\) at a typical height \(h\) above the anchor plane and anchor distance \(r\), 0.16 m at 4.0 m on MILUV, 2.2 m at 25 m on NTU VIRAL and 0.4 m at 4.4 m on IULUI. UTIL has no common anchor plane, so \(\kappa\) is the mean squared vertical direction cosine along the flights.</p>
 </section>
 
 <section id="results" class="wrap">
@@ -317,7 +316,7 @@
 </section>
 
 <section class="wrap">
-  <h2>Speed</h2>
+  <h2>Solve time</h2>
   <div class="two">
     <div class="fig"><img src="assets/fig_nsweep_jetson.png" alt="Jetson Orin NX solve time and RMSE against the number of samples"></div>
     <p><b>Onboard</b> Jetson Orin NX: 8.0 ms median at N = 2048, the paper setting, inside the 10 ms epoch of IULUI.</p>
