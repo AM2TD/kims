@@ -32,8 +32,12 @@
   header.hero::after{content:"";position:absolute;inset:0;z-index:1;
       background:linear-gradient(180deg,rgba(15,15,19,.80) 0%,rgba(15,15,19,.70) 50%,rgba(15,15,19,.97) 100%)}
   .hero-in{position:relative;z-index:2;width:100%}
-  .abs{color:#cfcfd7;font-size:.98rem;line-height:1.75;text-align:justify;hyphens:auto;margin-top:12px}
-  @media(max-width:560px){.abs{text-align:left}}
+  ol.steps{margin:14px 0 0 22px;color:#cfcfd7;font-size:.95rem;line-height:1.7}
+  ol.steps li{margin:8px 0;padding-left:4px}
+  ol.steps li b{color:var(--ink)}
+  ol.steps .katex-display{margin:.5em 0;overflow-x:auto;overflow-y:hidden}
+  .abs,.lead{color:#cfcfd7;font-size:.98rem;line-height:1.75;text-align:justify;hyphens:auto;margin-top:12px}
+  @media(max-width:560px){.abs,.lead{text-align:left}}
   header.hero .tag{color:#c4c4cc}
   @media(prefers-reduced-motion:reduce){.hero-bg{display:none}}
   .logo{font-size:3.2rem;font-weight:850;letter-spacing:-1.5px;line-height:1}
@@ -146,7 +150,7 @@
 </section>
 
 <section id="demo" class="wrap">
-  <h2>Video <small>real flights, real time, original sound</small></h2>
+  <h2>Video</h2>
   <div class="carousel">
     <div class="slide" data-active>
       <video controls playsinline preload="metadata">
@@ -176,7 +180,7 @@
   <div class="vgrid">
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_miluv_random3.mp4" type="video/mp4"><source src="assets/kims_demo_miluv_random3.webm" type="video/webm"></video><p>MILUV <code>random3_0</code></p></div>
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_miluv_lowpace.mp4" type="video/mp4"><source src="assets/kims_demo_miluv_lowpace.webm" type="video/webm"></video><p>MILUV <code>rcLowPace_0_v2</code></p></div>
-    <div><video autoplay loop muted playsinline><source src="assets/kims_demo_util_const4.mp4" type="video/mp4"><source src="assets/kims_demo_util_const4.webm" type="video/webm"></video><p>UTIL <code>const4-trial1-tdoa2-traj1</code> &middot; TDOA</p></div>
+    <div><video autoplay loop muted playsinline><source src="assets/kims_demo_util_const4.mp4" type="video/mp4"><source src="assets/kims_demo_util_const4.webm" type="video/webm"></video><p>UTIL <code>const4-trial1-tdoa2-traj1</code> &middot; TDoA</p></div>
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_eee01.mp4" type="video/mp4"><source src="assets/kims_demo_eee01.webm" type="video/webm"></video><p>NTU VIRAL <code>eee_01</code></p></div>
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_eee02.mp4" type="video/mp4"><source src="assets/kims_demo_eee02.webm" type="video/webm"></video><p>NTU VIRAL <code>eee_02</code></p></div>
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_iului_noncoplanarcirclespin.mp4" type="video/mp4"><source src="assets/kims_demo_iului_noncoplanarcirclespin.webm" type="video/webm"></video><p>IULUI <code>NoncoplanarCircleSpin</code></p></div>
@@ -185,7 +189,7 @@
 </section>
 
 <section class="wrap">
-  <h2>Pipeline <small>one solve over a sliding window</small></h2>
+  <h2>Pipeline</h2>
   <div class="fig"><img src="assets/fig_pipeline.png" alt="One KIMS solve over a sliding window"></div>
   <div class="points">
     <div class="point"><b>Sample</b>33 numbers per sample: a start-state offset and 4 cosine terms per IMU channel</div>
@@ -195,7 +199,36 @@
 </section>
 
 <section class="wrap">
-  <h2>Window length <small>the values behind the lower bound</small></h2>
+  <h2>Tempering</h2>
+  <p class="lead">Samples are drawn from the proposal carried from the previous window and weighted against the window posterior. When the weights collapse, the cost is tempered by \(\beta \in (0,1]\) and raised back to 1 over a few redraws.</p>
+  <div class="eq">\[
+    q = \alpha\,\mathcal{N}(\boldsymbol{\mu},\boldsymbol{\Sigma}) + (1-\alpha)\,p_0,\ \ \alpha = 0.9,\qquad
+    w^{(n)}(\beta) \propto e^{-\beta S(\boldsymbol{\theta}^{(n)})}\,\frac{p_0(\boldsymbol{\theta}^{(n)})}{q(\boldsymbol{\theta}^{(n)})},\qquad
+    \mathrm{ESS}(\beta) = \frac{1}{\sum_n w^{(n)}(\beta)^2}
+  \]</div>
+  <ol class="steps">
+    <li>Tempering starts when \(\mathrm{ESS}(1) < 0.02N\).</li>
+    <li>Bisection on the samples at hand, without new rollouts, sets the first \(\beta\) to the largest value with \(\mathrm{ESS}(\beta) \ge N_{\mathrm{fit}} = 4\dim\boldsymbol{\theta} = 132\).</li>
+    <li>The Gaussian component is refitted to the weights \(w(\beta)\) as \(\tilde{\boldsymbol{\mu}}, \tilde{\boldsymbol{\Sigma}}\) and blended with the covariance it was drawn from,
+      \[ \boldsymbol{\Sigma} \leftarrow \rho\cdot 1.2\,\tilde{\boldsymbol{\Sigma}} + (1-\rho)\,\boldsymbol{\Sigma},\qquad \rho = \frac{\mathrm{ESS}}{\mathrm{ESS} + \dim\boldsymbol{\theta}}, \]
+      then \(N\) new samples are drawn and rolled out.</li>
+    <li>With the target \(N_\star = \max\bigl(\mathrm{ESS}(\beta)/2,\ N_{\mathrm{fit}}\bigr)\) on the new samples,
+      \[ \beta \leftarrow \begin{cases} 1, & \mathrm{ESS}(1) \ge N_\star \\ \max\{\beta' \ge \beta : \mathrm{ESS}(\beta') \ge N_\star\}, & \text{otherwise.} \end{cases} \]</li>
+    <li>Steps 3 and 4 repeat until \(\beta = 1\) and \(\mathrm{ESS}(1) \ge N_{\mathrm{done}} = 0.05N\), or for at most 20 stages.</li>
+    <li>The estimate is the mean under the untempered weights \(w(1)\). \(\mathcal{N}(\boldsymbol{\mu},\boldsymbol{\Sigma})\) is carried to the next window only if \(\mathrm{ESS}(1) \ge N_{\mathrm{fit}}\), otherwise the next window draws from \(p_0\).</li>
+  </ol>
+  <table>
+    <tr><th>Paper runs, \(N = 2048\)</th><th>MILUV</th><th>NTU VIRAL</th><th>UTIL</th><th>IULUI</th></tr>
+    <tr><td>solves that temper</td><td>57 %</td><td>0.1 %</td><td>55 %</td><td>1.5 %</td></tr>
+    <tr><td>mean passes per solve</td><td>9.2</td><td>1.0</td><td>7.2</td><td>1.2</td></tr>
+    <tr><td>stage limit reached</td><td>2.5 %</td><td>0.02 %</td><td>5.0 %</td><td>0.4 %</td></tr>
+    <tr><td>Gaussian component dropped</td><td>43 %</td><td>0.3 %</td><td>46 %</td><td>1.3 %</td></tr>
+  </table>
+  <p class="cap">from the <code>_bias.txt</code> logs of <code>scripts/run.py kims</code>, 853,559 solves over the 104 flights</p>
+</section>
+
+<section class="wrap">
+  <h2>Window length</h2>
   <div class="eq">\[
     \mathcal{I}(T_w) = \frac{\nu\,\kappa}{\sigma_{\mathrm{eff}}^2}\int_0^{T_w}\!\Bigl(\tfrac12 \tau^2\Bigr)^2 d\tau = \frac{\nu\,\kappa\,T_w^5}{20\,\sigma_{\mathrm{eff}}^2}
     \;\ge\; \frac{1}{\sigma_{b,a}^2}
@@ -211,11 +244,11 @@
     <tr><td>lower bound</td><td>2.6 s</td><td>1.7 s</td><td>1.1 s</td><td>1.3 s</td></tr>
     <tr><td>window used</td><td>3 s</td><td>2 s</td><td>2 s</td><td>2 s</td></tr>
   </table>
-  <p class="cap">\(\nu\) is the mean range rate of the flights. \(\sigma_{\mathrm{eff}}\) is the range standard deviation inside the cut of the loss, on MILUV the line-of-sight width of the mixture divided by the square root of its line-of-sight share, \(0.069/\sqrt{0.733}\), on NTU VIRAL the standard deviation the dataset reports with each range, on UTIL the TDOA deviation of the development kit and on IULUI the range deviation of the loss. \(\kappa = (h/r)^2\) at a typical height \(h\) above the anchor plane and anchor distance \(r\), 0.16 m at 4.0 m on MILUV, 2.2 m at 25 m on NTU VIRAL and 0.4 m at 4.4 m on IULUI. UTIL has no common anchor plane, so \(\kappa\) is the mean squared vertical direction cosine along the flights.</p>
+  <p class="cap">\(\nu\) is the mean range rate of the flights. \(\sigma_{\mathrm{eff}}\) is the range standard deviation inside the cut of the loss, on MILUV the line-of-sight width of the mixture divided by the square root of its line-of-sight share, \(0.069/\sqrt{0.733}\), on NTU VIRAL the standard deviation the dataset reports with each range, on UTIL the TDoA deviation of the development kit and on IULUI the range deviation of the loss. \(\kappa = (h/r)^2\) at a typical height \(h\) above the anchor plane and anchor distance \(r\), 0.16 m at 4.0 m on MILUV, 2.2 m at 25 m on NTU VIRAL and 0.4 m at 4.4 m on IULUI. UTIL has no common anchor plane, so \(\kappa\) is the mean squared vertical direction cosine along the flights.</p>
 </section>
 
 <section id="results" class="wrap">
-  <h2>Results <small>median 3D position RMSE, UWB + IMU only</small></h2>
+  <h2>Results <small>median 3D position RMSE</small></h2>
   <div class="res">
     <div class="rcard"><h3>MILUV</h3><div class="n">13 flights &middot; 6 anchors</div>
       <div class="big">0.135<small> m</small></div>
@@ -223,10 +256,10 @@
     <div class="rcard"><h3>NTU VIRAL</h3><div class="n">9 flights &middot; 3 coplanar anchors</div>
       <div class="big">0.575<small> m</small></div>
       <ul><li>SFUISE<em>2.537</em></li><li>matched LM<em>0.638</em></li></ul></div>
-    <div class="rcard"><h3>UTIL</h3><div class="n">79 flights &middot; TDOA, 1 tag</div>
+    <div class="rcard"><h3>UTIL</h3><div class="n">79 flights &middot; TDoA, 1 tag</div>
       <div class="big">0.187<small> m</small></div>
       <ul><li>SFUISE<em>0.184</em></li><li>ESKF<em>0.217</em></li></ul></div>
-    <div class="rcard"><h3>IULUI</h3><div class="n">3 flights &middot; ours</div>
+    <div class="rcard"><h3>IULUI</h3><div class="n">3 flights &middot; 4 anchors, 2 layouts</div>
       <div class="big">0.120<small> m</small></div>
       <ul><li>SFUISE<em>0.235</em></li><li>matched LM<em>0.418</em></li></ul></div>
   </div>
