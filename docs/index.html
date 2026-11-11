@@ -161,7 +161,7 @@
 
 <section class="wrap">
   <h2>Abstract</h2>
-  <p class="abs">This paper presents KIMS, a kinematics-constrained fixed-lag smoother for 6-DoF pose estimation from ultra-wideband (UWB) ranges and an inertial measurement unit (IMU). UWB ranges contain non-line-of-sight outliers and per-link biases, and anchors mounted at similar heights constrain the height only weakly, so the posterior of a window is non-Gaussian. An estimator that carries a single estimate with its curvature describes it by one local fit. KIMS instead samples a compact window variable, the window-start offset and a smooth correction of the IMU input. Every sample is rolled through the IMU kinematics and weighted by the robust range cost of the whole window, as in model predictive path integral control, and the estimate and the proposal carried to the next window are moments of the window posterior rather than its mode. On 104 real flights from four datasets KIMS never diverges and exceeds 1&#8239;m of error on two, near coplanar anchors it is more robust than a gradient-based optimizer of the same objective, and on an embedded GPU its median solve time is below the ranging interval.</p>
+  <p class="abs">This paper presents KIMS, a kinematics-constrained fixed-lag smoother for 6-DoF pose estimation using ultra-wideband (UWB) ranges and an inertial measurement unit (IMU). Non-line-of-sight outliers, per-link biases, and weak vertical observability with anchors at similar heights can produce non-Gaussian window posteriors that are poorly represented by a local Gaussian approximation around a single mode. KIMS samples a compact window variable comprising the window-start state offset and coefficients of a smooth IMU-input correction. Following the importance-weighted sampling principle of model predictive path integral control, it propagates each sample through the IMU kinematics and assigns importance weights using a robust full-window cost. Weighted posterior moments determine the state estimate and initialize the proposal for the next window. Across 104 real flights from four datasets, KIMS records no divergence and exceeds a 3D RMSE of 1&#8239;m on two flights under the flight-level evaluation protocol. Compared with a Levenberg–Marquardt (LM) baseline using the same window variables and cost formulation, KIMS shows greater robustness near coplanar anchors. In the reported onboard timing experiments, KIMS achieves a median solve time below the ranging interval on an embedded GPU.</p>
 </section>
 
 <section id="demo" class="wrap">
@@ -339,7 +339,7 @@
 </section>
 
 <section class="wrap">
-  <h2>IULUI dataset <small>ships with the code</small></h2>
+  <h2>IULUI dataset</h2>
   <div class="fig" style="padding:0;overflow:hidden"><img src="assets/env.jpg" alt="IULUI arena with the drone, four UWB anchors and the motion-capture cameras"></div>
   <table>
     <tr><th>Flight</th><th>Anchors</th><th>Motion</th><th>Plane crossings</th></tr>
