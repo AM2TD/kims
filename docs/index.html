@@ -349,25 +349,6 @@
     <tr><td>CoplanarCircleSpin</td><td>4 at 1.30 m</td><td>2 m/s circle, yaw spin</td><td>14</td></tr>
     <tr><td>NoncoplanarCircleSpin</td><td>0.24, 1.06, 1.42, 2.20 m</td><td>same circle and spin</td><td>&ndash;</td></tr>
   </table>
-  <p class="cap">2 UWB tags &middot; 800 ranges/s &middot; IMU 50 Hz &middot; Qualisys ground truth 70 Hz &middot; CSV + JSON + ROS bags</p>
-</section>
-
-<section class="wrap">
-  <h2>Quick start</h2>
-<pre><span class="c"># build (CUDA GPU, no ROS)</span>
-cmake -S . -B build -DKIMS_NO_ROS=ON &amp;&amp; cmake --build build -j8
-
-<span class="c"># one flight, score, plot</span>
-python3 scripts/run.py kims iului SquareTurn
-python3 scripts/evaluate.py
-python3 scripts/plot.py iului SquareTurn
-
-<span class="c"># all 104 flights (or: docker/build.sh &amp;&amp; docker/run.sh)</span>
-scripts/reproduce.sh
-
-<span class="c"># online, ROS Noetic: catkin_make, then a shipped bag in real time</span>
-roslaunch kims kims_online.launch seq:=SquareTurn rviz:=true</pre>
-  <p class="cap"><a href="https://github.com/AM2TD/kims#readme">README</a> for the data, the baselines and every option</p>
 </section>
 
 <section id="paper" class="wrap">
