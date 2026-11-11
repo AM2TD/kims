@@ -17,7 +17,7 @@
   <sub>IULUI CoplanarCircleSpin, onboard camera. 200 of the 2,048 window rollouts of each solve, colored by weight.</sub>
 </p>
 
-KIMS is a fixed-lag smoother for UWB ranges (two-way ranging or TDOA) and an IMU. It samples IMU input corrections,
+KIMS is a fixed-lag smoother for UWB ranges (two-way ranging or TDoA) and an IMU. It samples IMU input corrections,
 rolls every sample through the IMU kinematics on the GPU and weights it by the UWB ranges.
 
 <p align="center"><img src="docs/assets/fig_pipeline.png" width="100%" alt="One KIMS solve"></p>
@@ -30,7 +30,7 @@ Median 3D position RMSE [m] on 104 real flights, UWB and IMU only.
 |---|:---:|:---:|:---:|:---:|
 | MILUV | 13 | **0.135** | 0.704 (3 diverged) | 0.265 (EKF + height sensor) |
 | NTU VIRAL | 9 | **0.575** | 2.537 (2 diverged) | – |
-| UTIL (TDOA) | 79 | 0.187 | **0.184** (5 diverged) | 0.217 (ESKF) |
+| UTIL (TDoA) | 79 | 0.187 | **0.184** (5 diverged) | 0.217 (ESKF) |
 | IULUI (ours) | 3 | **0.120** | 0.235 | – |
 
 KIMS never diverges. KIMS values on MILUV, NTU VIRAL and IULUI are means over ten seeds.
@@ -57,9 +57,9 @@ cmake -S . -B build -DKIMS_NO_ROS=ON
 cmake --build build -j8                                   # -> build/bin/kims, sw_pgo, pf
 
 # one flight (IULUI ships with the code), score it, plot it
-python3 scripts/run.py kims iului SquareTurn
+python3 scripts/run.py kims iului CoplanarSquareTurn
 python3 scripts/evaluate.py
-python3 scripts/plot.py iului SquareTurn                  # -> result/plots/iului_SquareTurn.png
+python3 scripts/plot.py iului CoplanarSquareTurn          # -> result/plots/iului_CoplanarSquareTurn.png
 
 # all 104 flights, then the tables
 scripts/reproduce.sh
@@ -79,30 +79,47 @@ In a catkin workspace, `catkin_make` builds the same binaries into `devel/lib/ki
 ## Online (ROS)
 
 `catkin_make` also builds `kims_online`, the same estimator as a ROS node. It reads `sensor_msgs/Imu` and the
-Nooploop LinkTrack tag frames (`nlink_parser/LinktrackTagframe0`, decoded without the message package) and publishes
-`/kims_online/pose` (fixed-lag estimate), `/kims_online/pose_now` (newest epoch) and `/kims_online/path`.
-The three IULUI flights ship as bags in `data/iului/bags/`.
+Nooploop LinkTrack tag frames (`nlink_parser/LinktrackTagframe0`) and publishes `/kims_online/pose` (fixed-lag
+estimate), `/kims_online/pose_now` (newest epoch) and `/kims_online/path`. The three IULUI flights ship as bags in
+`data/iului/bags/`, and the node decodes their tag frames without the message package. A live LinkTrack needs the
+Nooploop driver [`nlink_parser`](https://github.com/nooploop-dev/nlink_parser) to publish
+`/nlink_linktrack_tagframe0`.
 
 <p align="center"><img src="docs/assets/online_rviz.png" width="70%" alt="kims_online in RViz"><br>
-<sub><code>rviz:=true</code>: KIMS path (red) and motion capture (gray) on SquareTurn.</sub></p>
+<sub><code>rviz:=true</code>: KIMS path (red) and motion capture (gray) on CoplanarSquareTurn.</sub></p>
 
 ```bash
-roslaunch kims kims_online.launch seq:=SquareTurn                 # node reads the bag at real time
-roslaunch kims kims_online.launch seq:=SquareTurn rate:=0         # as fast as possible
-roslaunch kims kims_online.launch seq:=SquareTurn mode:=play      # rosbag play --clock, node subscribes
-roslaunch kims kims_online.launch seq:=SquareTurn rviz:=true        # with RViz
+roslaunch kims kims_online.launch seq:=CoplanarSquareTurn             # node reads the bag at real time
+roslaunch kims kims_online.launch seq:=CoplanarSquareTurn rate:=0     # as fast as possible
+roslaunch kims kims_online.launch seq:=CoplanarSquareTurn mode:=play  # rosbag play --clock, node subscribes
+roslaunch kims kims_online.launch seq:=CoplanarSquareTurn rviz:=true  # with RViz
 ```
 
-| Mode | Input | Result on SquareTurn |
+| Mode | Input | Result on CoplanarSquareTurn |
 |---|---|---|
 | `bag` | the bag, recorded times | 0.120 m, same output at any `rate` |
 | `play` | topics, arrival times | 0.120 m |
-| offline | `scripts/run.py kims iului SquareTurn` | 0.120 m |
+| offline | `scripts/run.py kims iului CoplanarSquareTurn` | 0.120 m |
 
-In `play` mode an estimate is out 17 ms (median) after its UWB epoch on an RTX 5070 Ti, most of it the wait for
-the next IMU sample (50 Hz).
-`bag` mode gives the offline output except for the order of ranges that share a time stamp, which the offline
-loader sorts. `seq` picks the anchors, tag offsets and start pose of a flight. The estimator settings are the paper's.
+
+### Latency
+
+When it exits, `kims_online` prints the latency of the estimates after the first 10 s: the time from the stamp of the
+newest UWB epoch in the window to the moment its estimate is published. It includes the wait for the IMU sample that
+closes the epoch (IMU at 50 Hz on IULUI), any queueing behind the previous solve and the solve itself.
+`/kims_online/pose_now` is out after this latency, `/kims_online/pose` 1.99 s later, the lag of the 200-epoch window.
+
+```bash
+roslaunch kims kims_online.launch seq:=CoplanarSquareTurn             # bag at real time, latency printed at the end
+roslaunch kims kims_online.launch seq:=CoplanarSquareTurn mode:=play  # rosbag play, the node subscribes to the topics
+```
+
+| Computer | Mode | CoplanarSquareTurn | CoplanarCircleSpin | NoncoplanarCircleSpin |
+|---|---|---|---|---|
+| Jetson Orin NX | `bag` | TBD | TBD | TBD |
+| Jetson Orin NX | `play` | TBD | TBD | TBD |
+
+Median / 95 % / max [ms] of the estimates after the first 10 s.
 
 ## Data
 
@@ -129,7 +146,7 @@ Any setting can be overridden:
 ```bash
 python3 scripts/run.py kims ntu sbs_02 seed:=7 --label seed7
 python3 scripts/run.py kims miluv default_1_random3_0 N:=2048 --label n2048
-python3 scripts/run.py swpgo iului SquareTurn robust_delta:=0 --label swpgo_norob
+python3 scripts/run.py swpgo iului CoplanarSquareTurn robust_delta:=0 --label swpgo_norob
 ```
 
 Keep `KIMS_OMP_THREADS=8` (the default) for bit-identical tables, and about 0.8 GB of GPU memory per KIMS run.

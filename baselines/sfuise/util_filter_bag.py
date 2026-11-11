@@ -13,4 +13,4 @@ with rosbag.Bag(f"{UR}/filtered_bags/{seq}.bag", "w") as out:
             n_in += 1
             if abs(msg.data) > np.linalg.norm(A[msg.idA] - A[msg.idB]) + 0.5: n_drop += 1; continue
         out.write(topic, msg, t)
-print(f"{seq}: dropped {n_drop} of {n_in} TDOA")
+print(f"{seq}: dropped {n_drop} of {n_in} TDoA")

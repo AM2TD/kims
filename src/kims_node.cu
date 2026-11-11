@@ -104,11 +104,11 @@ int kims::kimsRun(const std::map<std::string, std::string>& user_args, Session& 
     solver.w_gyr_ = w_gyr;
     if (S.tdoa) {
         if (S.num_anchors > 64 || static_cast<int>(S.anchorsB.size()) != 3 * S.num_anchors) {
-            std::fprintf(stderr, "[kims] TDOA: %d slots (max 64) and %zu anchor-B values\n", S.num_anchors, S.anchorsB.size()); return -1;
+            std::fprintf(stderr, "[kims] TDoA: %d slots (max 64) and %zu anchor-B values\n", S.num_anchors, S.anchorsB.size()); return -1;
         }
-        if (rb) { std::fprintf(stderr, "[kims] TDOA is not implemented in the rb path (use rb:=0)\n"); return -1; }
+        if (rb) { std::fprintf(stderr, "[kims] TDoA is not implemented in the rb path (use rb:=0)\n"); return -1; }
         solver.setTdoa(S.anchorsB.data(), S.num_anchors);
-        std::printf("[kims] TDOA: %d anchor-pair slots, measurement |tag - B| - |tag - A|\n", S.num_anchors);
+        std::printf("[kims] TDoA: %d anchor-pair slots, measurement |tag - B| - |tag - A|\n", S.num_anchors);
     }
     {
         double sigma_prop[DIM_U];

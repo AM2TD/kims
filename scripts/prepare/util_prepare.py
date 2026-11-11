@@ -40,8 +40,8 @@ agg["timestamp"] = tb.loc[agg["b"]].values
 agg = agg.sort_values(["timestamp", "s"])
 pd.DataFrame({"timestamp": agg["timestamp"].values, "range": agg["z"].values + SHIFT, "from_id": 0, "to_id": agg["s"].values,
               "std": 0.224}).to_csv(os.path.join(out, "uwb_range.csv"), index=False, float_format="%.9f")
-np.savetxt(os.path.join(out, "anchors_A.txt"), np.array([A[ii] for ii, jj in slots]), fmt="%.6f", header="anchor A of every TDOA slot")
-np.savetxt(os.path.join(out, "anchors_B.txt"), np.array([A[jj] for ii, jj in slots]), fmt="%.6f", header="anchor B of every TDOA slot")
+np.savetxt(os.path.join(out, "anchors_A.txt"), np.array([A[ii] for ii, jj in slots]), fmt="%.6f", header="anchor A of every TDoA slot")
+np.savetxt(os.path.join(out, "anchors_B.txt"), np.array([A[jj] for ii, jj in slots]), fmt="%.6f", header="anchor B of every TDoA slot")
 P = d[["t_pose", "pose_x", "pose_y", "pose_z", "pose_qx", "pose_qy", "pose_qz", "pose_qw"]].dropna().values
 pd.DataFrame({"timestamp": P[:, 0], "x": P[:, 1], "y": P[:, 2], "z": P[:, 3]}).to_csv(os.path.join(out, "gt.csv"), index=False, float_format="%.6f")
 pd.DataFrame(P, columns=["timestamp", "x", "y", "z", "qx", "qy", "qz", "qw"]).to_csv(os.path.join(out, "gt_pose.csv"), index=False, float_format="%.6f")

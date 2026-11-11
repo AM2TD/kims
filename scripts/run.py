@@ -11,7 +11,7 @@ SEQUENCES = {
               "default_1_remoteControlHighPace_2", "noAprilTags_1_random3_2b", "noAprilTags_1_remoteControlHighPace_2b"],
     "ntu": ["eee_01", "eee_02", "eee_03", "nya_01", "nya_02", "nya_03", "sbs_01", "sbs_02", "sbs_03"],
     "util": None,
-    "iului": ["SquareTurn", "CircleSpin", "AC3_125000"],
+    "iului": ["CoplanarSquareTurn", "CoplanarCircleSpin", "NoncoplanarCircleSpin"],
 }
 WINDOW = {"miluv": 229, "ntu": 118, "util": 100, "iului": 200}
 
@@ -33,8 +33,7 @@ def miluv_constellation(seq):
     return seq.split("_")[3]
 
 def iului_meta(seq):
-    f = os.path.join(PKG, "data/iului", f"AC1_{seq}.json")
-    return json.load(open(f if os.path.exists(f) else os.path.join(PKG, "data/iului", f"{seq}.json")))
+    return json.load(open(os.path.join(PKG, "data/iului", f"{seq}.json")))
 
 def data_args(dataset, seq, out):
     a = {"dataset": dataset, "sequence": seq, "pkg_dir": PKG, "output_file": out}

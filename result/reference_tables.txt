@@ -45,9 +45,9 @@ UTIL                                                     kims            swpgo  
   KIMS lower than                                                          0/8              0/8              6/8              7/8                78/79
 
 IULUI                                                    kims            swpgo      swpgo_norob               pf           pf_q10
-  SquareTurn                                      0.120 (9.7)      0.912 (4.7)      0.943 (8.0)      div. (div.)     0.886 (15.8)
-  CircleSpin                                      0.117 (4.0)      0.406 (4.3)      0.414 (3.9)      div. (div.)      0.477 (7.1)
-  AC3_125000                                      0.128 (3.4)      0.133 (4.0)      0.510 (4.9)      div. (div.)      0.141 (6.5)
+  CoplanarSquareTurn                              0.120 (9.7)      0.912 (4.7)      0.943 (8.0)      div. (div.)     0.886 (15.8)
+  CoplanarCircleSpin                              0.117 (4.0)      0.406 (4.3)      0.414 (3.9)      div. (div.)      0.477 (7.1)
+  NoncoplanarCircleSpin                           0.128 (3.4)      0.133 (4.0)      0.510 (4.9)      div. (div.)      0.141 (6.5)
   median (diverged/failed)                        0.120 (0/0)      0.406 (0/0)      0.510 (0/0)       div. (3/3)      0.477 (0/0)
   KIMS lower than                                                          3/3              3/3              3/3              3/3
 

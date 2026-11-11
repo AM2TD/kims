@@ -14,8 +14,7 @@ if ds == "ntu":
     p0 = [iv["init_x"], iv["init_y"], iv["init_z"]]; yaw0 = iv["init_yaw"]
 elif ds == "iului":
     d = f"{PKG}/data/iului/{seq}"; imu = pd.read_csv(f"{d}/imu.csv"); uwb = pd.read_csv(f"{d}/uwb_range.csv", usecols=["timestamp", "range", "from_id", "to_id"])
-    mp = f"{PKG}/data/iului/AC1_{seq}.json"; mp = mp if os.path.exists(mp) else f"{PKG}/data/iului/{seq}.json"
-    meta = json.load(open(mp)); A = np.array(meta["anchors"]); aid = [0, 1, 2, 3]; tags = [meta["tag0_id"], meta["tag1_id"]]
+    meta = json.load(open(f"{PKG}/data/iului/{seq}.json")); A = np.array(meta["anchors"]); aid = [0, 1, 2, 3]; tags = [meta["tag0_id"], meta["tag1_id"]]
     off = [meta["tag0_offset"], meta["tag1_offset"]]
     M = pd.read_csv(f"{d}/mocap.csv").values; G = M[:, :4]; gq = M[:, 4:8]; z_down = False; p0 = list(meta["init"]); yaw0 = 0.0
 else:

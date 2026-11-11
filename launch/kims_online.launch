@@ -1,5 +1,5 @@
 <launch>
-  <arg name="seq"  default="SquareTurn"/>
+  <arg name="seq"  default="CoplanarSquareTurn"/>
   <arg name="mode" default="bag"/>
   <arg name="rate" default="1.0"/>
   <arg name="bag"  default="$(find kims)/data/iului/bags/$(arg seq).bag"/>

@@ -53,9 +53,9 @@ The paths below are environment variables with defaults:
    ```
    The runs go one at a time with 1x playback, so nothing else should run on the machine. A run that crashes
    at start-up is retried up to three times.
-4. **UTIL (TDOA).** The published UTIL configuration (`config_test_util.yaml`) is used for each flight:
+4. **UTIL (TDoA).** The published UTIL configuration (`config_test_util.yaml`) is used for each flight:
    ```bash
-   python3 baselines/sfuise/util_filter_bag.py <flight>       # drops physically impossible TDOA values (same rule as for KIMS)
+   python3 baselines/sfuise/util_filter_bag.py <flight>       # drops physically impossible TDoA values (same rule as for KIMS)
    baselines/sfuise/util_sfuise.sh <flight> <ros port>      # -> result/util/sfuisetag_<flight>_pose.txt
    python3 baselines/sfuise/util_sfuise_body.py               # SFUISE reports the tag; moved to the body origin -> sfuise_<flight>_pose.txt
    ```
