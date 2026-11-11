@@ -101,26 +101,6 @@ roslaunch kims kims_online.launch seq:=CoplanarSquareTurn rviz:=true  # with RVi
 | `play` | topics, arrival times | 0.120 m |
 | offline | `scripts/run.py kims iului CoplanarSquareTurn` | 0.120 m |
 
-
-### Latency
-
-When it exits, `kims_online` prints the latency of the estimates after the first 10 s: the time from the stamp of the
-newest UWB epoch in the window to the moment its estimate is published. It includes the wait for the IMU sample that
-closes the epoch (IMU at 50 Hz on IULUI), any queueing behind the previous solve and the solve itself.
-`/kims_online/pose_now` is out after this latency, `/kims_online/pose` 1.99 s later, the lag of the 200-epoch window.
-
-```bash
-roslaunch kims kims_online.launch seq:=CoplanarSquareTurn             # bag at real time, latency printed at the end
-roslaunch kims kims_online.launch seq:=CoplanarSquareTurn mode:=play  # rosbag play, the node subscribes to the topics
-```
-
-| Computer | Mode | CoplanarSquareTurn | CoplanarCircleSpin | NoncoplanarCircleSpin |
-|---|---|---|---|---|
-| Jetson Orin NX | `bag` | TBD | TBD | TBD |
-| Jetson Orin NX | `play` | TBD | TBD | TBD |
-
-Median / 95 % / max [ms] of the estimates after the first 10 s.
-
 ## Data
 
 | Dataset | Get it |
