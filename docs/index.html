@@ -185,7 +185,7 @@
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_eee02.mp4" type="video/mp4"><source src="assets/kims_demo_eee02.webm" type="video/webm"></video><p>NTU VIRAL <code>eee_02</code></p></div>
     <div><video autoplay loop muted playsinline><source src="assets/kims_demo_iului_noncoplanarcirclespin.mp4" type="video/mp4"><source src="assets/kims_demo_iului_noncoplanarcirclespin.webm" type="video/webm"></video><p>IULUI <code>NoncoplanarCircleSpin</code></p></div>
   </div>
-  <p class="cap">Red: KIMS, UWB + IMU only &middot; dashed: ground truth &middot; teal grid: anchor height</p>
+  <p class="cap">Red: KIMS &middot; dashed: ground truth &middot; teal grid: anchor height</p>
 </section>
 
 <section class="wrap">
@@ -320,8 +320,7 @@
   <h2>Speed</h2>
   <div class="two">
     <div class="fig"><img src="assets/fig_nsweep_jetson.png" alt="Jetson Orin NX solve time and RMSE against the number of samples"></div>
-    <p><b>Desktop</b> RTX 5070 Ti at N = 2048: 2.2 ms mean per UWB epoch on NTU VIRAL, 3.6 on IULUI, 13 on UTIL and 19 on MILUV, where the smaller N triggers more tempering passes.<br>
-       <b>Onboard</b> Jetson Orin NX: 8.0 ms median at N = 2048, the paper setting, inside the 10 ms epoch of IULUI.</p>
+    <p><b>Onboard</b> Jetson Orin NX: 8.0 ms median at N = 2048, the paper setting, inside the 10 ms epoch of IULUI.</p>
   </div>
 </section>
 
